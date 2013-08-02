@@ -124,7 +124,7 @@ class ChessBoard {
 	}
 	
 	// makeMove tries to make a move and returns true if move is made or false if not
-	boolean makeMove(String f, String t) {
+	boolean makeMove(String f, String t) throws IOException {
 		// parse the strings to get the positions indicated
 		int fromR, fromC, toR, toC;
 		try {
@@ -161,6 +161,27 @@ class ChessBoard {
 			System.out.println(board[toR][toC]);
 			*/
 			
+			// If the pawn reaches a square on the back rank of the opponent, it promotes to the player's choice of a queen, rook, bishop, or knight
+			if (board[toR][toC].getName() == 'P' &&
+					((board[toR][toC].getColor() == WHITE && toR == 8) || (board[toR][toC].getColor() == BLACK && toR == 1))) {
+				System.out.println("Congratulations! Your pawn has reached the opposite end of the board. Would you like to replace it with a Queen, Rook, Bishop, or Knight?");
+				BufferedReader stream = new BufferedReader(new InputStreamReader(System.in));
+				String s;
+				char choice;
+				while (true) {
+					System.out.print("Please enter your choice: Q, R, B, or N: ");
+					s = stream.readLine();
+					choice = s.toUpperCase().charAt(0);
+					if (choice == 'Q' || choice == 'R' || choice == 'B' || choice == 'N')
+						break;
+				}
+				switch (choice) {
+				case 'Q': board[toR][toC] = new Queen(activePlayer); break;
+				case 'R': board[toR][toC] = new Rook(activePlayer); break;
+				case 'B': board[toR][toC] = new Bishop(activePlayer); break;
+				case 'N': board[toR][toC] = new Knight(activePlayer); break;
+				}
+			}
 			return true;
 		} else return false;
 	}
@@ -197,6 +218,10 @@ class ChessBoard {
 		 */
 		 boolean validMove (int fr, int fc, int tr, int tc) {
 			return false;
+		}
+		 
+		char getName() {
+			return pieceName;
 		}
 		 
 		boolean getColor() {
