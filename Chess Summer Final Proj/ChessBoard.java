@@ -154,13 +154,18 @@ class ChessBoard {
 				board[fromR][fromC].getColor() == activePlayer &&// can only move your own piece
 				!board[fromR][fromC].isEmpty() && // "from" space must be occupied
 				!(fromR == toR && fromC == toC) && // "from" and "to" can't be the same space
-				board[toR][toC].getColor() != activePlayer &&// "to" can't be a piece of your own color
 				board[fromR][fromC].validMove(fromR, fromC, toR, toC)) { // must be valid move based on that gamepiece
 			// if "to" space is empty, can just switch the "from" and "to"
 			if (board[toR][toC].isEmpty()) {
 				ChessPiece temp = board[toR][toC];
 				board[toR][toC] = board[fromR][fromC];
 				board[fromR][fromC] = temp;
+				// if pawn that hasn't moved before, mark it as moved
+				if (board[toR][toC].getName() == 'P') {
+					Pawn p = (Pawn) board[toR][toC];
+					if (!p.hasMoved)
+						p.move();
+				}
 			} else if (board[fromR][fromC].getColor() != board[toR][toC].getColor()) {
 				// if the "to" isn't empty and it's on the other side, capture it
 				System.out.println(board[toR][toC]+" captured.");
@@ -366,12 +371,18 @@ class ChessBoard {
 			hasMoved = false;
 			color = c;
 		}
+		void move() {
+			hasMoved = true;
+		}
 		boolean validMove (int fr, int fc, int tr, int tc) {
 			// if moving forward 1 in the same column and the target is empty, return true
 			if ((tr - fr == (color == WHITE ? 1 : -1)) && (fc == tc) && board[tr][tc].isEmpty())
 				return true;
 			// if moving forward 1 and sideways 1 and the target is not empty, return true
 			else if ((tr - fr == (color == WHITE ? 1 : -1)) && (Math.abs(tc-fc) == 1) && !board[tr][tc].isEmpty())
+				return true;
+			// if it's this pawn's fist move and moving forward 2 in the same column and the target is empty, return true
+			else if (!hasMoved && (tr - fr == (color == WHITE ? 2 : -2)) && (fc == tc) && board[tr][tc].isEmpty())
 				return true;
 			else
 				return false;
