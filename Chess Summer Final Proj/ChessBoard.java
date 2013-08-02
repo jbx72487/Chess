@@ -35,30 +35,32 @@ class ChessBoard {
 		}
 		
 		board = new ChessPiece[9][9];
-		board[1][letterMap.get("a").intValue()] = new Rook();
-		board[1][letterMap.get("b")] = new Knight();
-		board[1][letterMap.get("c")] = new Bishop();
-		board[1][letterMap.get("d")] = new King();
-		board[1][letterMap.get("e")] = new Queen();
-		board[1][letterMap.get("f")] = new Bishop();
-		board[1][letterMap.get("g")] = new Knight();
-		board[1][letterMap.get("h")] = new Rook();
+		board[1][letterMap.get("a").intValue()] = new Rook(WHITE);
+		board[1][letterMap.get("b")] = new Knight(WHITE);
+		board[1][letterMap.get("c")] = new Bishop(WHITE);
+		board[1][letterMap.get("d")] = new King(WHITE);
+		board[1][letterMap.get("e")] = new Queen(WHITE);
+		board[1][letterMap.get("f")] = new Bishop(WHITE);
+		board[1][letterMap.get("g")] = new Knight(WHITE);
+		board[1][letterMap.get("h")] = new Rook(WHITE);
 		for (int r = 2; r < 8; r++) {
 			for (int c = 1; c<= 8; c++) {
-				if (r == 2 || r == 7)
-					board[r][c] = new Pawn();
+				if (r == 7)
+					board[r][c] = new Pawn(BLACK);
+				else if (r == 2)
+					board[r][c] = new Pawn(WHITE);
 				else
 					board[r][c] = new ChessPiece();
 			}
 		}
-		board[8][letterMap.get("a").intValue()] = new Rook();
-		board[8][letterMap.get("b")] = new Knight();
-		board[8][letterMap.get("c")] = new Bishop();
-		board[8][letterMap.get("d")] = new King();
-		board[8][letterMap.get("e")] = new Queen();
-		board[8][letterMap.get("f")] = new Bishop();
-		board[8][letterMap.get("g")] = new Knight();
-		board[8][letterMap.get("h")] = new Rook();
+		board[8][letterMap.get("a").intValue()] = new Rook(BLACK);
+		board[8][letterMap.get("b")] = new Knight(BLACK);
+		board[8][letterMap.get("c")] = new Bishop(BLACK);
+		board[8][letterMap.get("d")] = new King(BLACK);
+		board[8][letterMap.get("e")] = new Queen(BLACK);
+		board[8][letterMap.get("f")] = new Bishop(BLACK);
+		board[8][letterMap.get("g")] = new Knight(BLACK);
+		board[8][letterMap.get("h")] = new Rook(BLACK);
 	}
 	
 	void play() throws IOException {
@@ -82,9 +84,11 @@ class ChessBoard {
 		for (int r = 8; r >= 1; r--) {
 			for (int c = 1; c <= 8; c++) {
 				if (board[r][c].isEmpty())
-					System.out.print(" - ");
-				else
-					System.out.print(" "+board[r][c]+" ");
+					System.out.print(" -- ");
+				else {
+					int color = board[r][c].getColor() == BLACK ? 1 : 0;
+					System.out.print(" "+ color + board[r][c]+" ");
+				}
 			}
 			System.out.println();
 		}
@@ -129,6 +133,7 @@ class ChessBoard {
 	
 	class ChessPiece {
 		char pieceName;
+		boolean color;
 		
 		ChessPiece () {
 			// if empty, set pieceName to be null
@@ -153,11 +158,16 @@ class ChessBoard {
 		 boolean validMove (int fr, int fc, int tr, int tc) {
 			return false;
 		}
+		 
+		boolean getColor() {
+			return color;
+		}
 	}
 	
 	class King extends ChessPiece {
-		King() {
+		King(boolean c) {
 			pieceName = 'K';
+			color = c;
 		}
 		// king can move exactly one vacant square in any direction
 		boolean validMove (int fr, int fc, int tr, int tc) {
@@ -171,8 +181,9 @@ class ChessBoard {
 		}
 	}
 	class Queen extends ChessPiece {
-		Queen() {
+		Queen(boolean c) {
 			pieceName = 'Q';
+			color = c;
 		}
 		boolean validMove (int fr, int fc, int tr, int tc) {
 			// can go in diagonals
@@ -186,8 +197,9 @@ class ChessBoard {
 		}
 	}
 	class Knight extends ChessPiece {
-		Knight() {
+		Knight(boolean c) {
 			pieceName = 'N';
+			color = c;
 		}
 		boolean validMove (int fr, int fc, int tr, int tc) {
 			if ((Math.abs(fr - tr) == 2) && (Math.abs(fc - tc) == 1))
@@ -199,8 +211,9 @@ class ChessBoard {
 		}
 	}
 	class Rook extends ChessPiece {
-		Rook() {
+		Rook(boolean c) {
 			pieceName = 'R';
+			color = c;
 		}
 		boolean validMove (int fr, int fc, int tr, int tc) {
 			if ((fr == tr) || (fc == tc))
@@ -210,8 +223,9 @@ class ChessBoard {
 		}
 	}
 	class Bishop extends ChessPiece {
-		Bishop() {
+		Bishop(boolean c) {
 			pieceName = 'B';
+			color = c;
 		}
 		boolean validMove (int fr, int fc, int tr, int tc) {
 			if (fr - tr == fc - tc)
@@ -222,9 +236,10 @@ class ChessBoard {
 	}
 	class Pawn extends ChessPiece {
 		boolean hasMoved;
-		Pawn() {
+		Pawn(boolean c) {
 			pieceName = 'P';
 			hasMoved = false;
+			color = c;
 		}
 		boolean validMove (int fr, int fc, int tr, int tc) {
 			if ((tr - fr == 1) && (fc == tc))
