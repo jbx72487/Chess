@@ -82,8 +82,10 @@ class ChessBoard {
 				// if successful, display new board
 				display();
 			}
-			else
+			else {
 				System.out.println("Invalid move, please try again.");
+				display();
+			}
 		}
 		
 		// if check or checkmate, say so
@@ -190,9 +192,7 @@ class ChessBoard {
 		}
 		// king can move exactly one vacant square in any direction
 		boolean validMove (int fr, int fc, int tr, int tc) {
-			if ((Math.abs(fr - tr) == 1) && (Math.abs(fc - tc) == 0))
-				return true;
-			else if ((Math.abs(fr - tr) == 0) && (Math.abs(fc - tc) == 1))
+			if (((Math.abs(fr - tr) == 1) && (Math.abs(fc - tc) == 0)) || ((Math.abs(fr - tr) == 0) && (Math.abs(fc - tc) == 1)))
 				return true;
 			else
 				return false;
@@ -205,13 +205,26 @@ class ChessBoard {
 			color = c;
 		}
 		boolean validMove (int fr, int fc, int tr, int tc) {
-			// can go in diagonals
-			if (fr - tr == fc - tc)
+			// can go in diagonals or straight lines
+			if (fr - tr == fc - tc) {
+				// if going in diagonal, check for pieces in between
+				int c = Math.min(fc,  tc)+1;
+				for (int r = Math.min(fr, tr)+1; r < Math.max(fr,  tr); r++) {
+					if (!board[r][c].isEmpty()) return false;
+					c++;
+				}
 				return true;
-			// can also go in straight lines
-			else if ((fr == tr) || (fc == tc))
+			} else if (fr == tr) {
+				// if going horiz, check for pieces in between
+				for (int c = Math.min(fc, tc)+1; c < Math.max(fc, tc); c++)
+					if (!board[fr][c].isEmpty()) return false;
 				return true;
-			else
+			} else if (fc == tc) {
+				// if going vert, check for pieces in between
+				for (int r = Math.min(fr, tr)+1; r < Math.max(fr, tr); r++)
+					if (!board[r][fc].isEmpty()) return false;
+				return true;
+			} else
 				return false;
 		}
 	}
@@ -221,9 +234,8 @@ class ChessBoard {
 			color = c;
 		}
 		boolean validMove (int fr, int fc, int tr, int tc) {
-			if ((Math.abs(fr - tr) == 2) && (Math.abs(fc - tc) == 1))
-				return true;
-			else if ((Math.abs(fr - tr) == 1) && (Math.abs(fc - tc) == 2))
+			if (((Math.abs(fr - tr) == 2) && (Math.abs(fc - tc) == 1)) ||
+					((Math.abs(fr - tr) == 1) && (Math.abs(fc - tc) == 2)))
 				return true;
 			else
 				return false;
@@ -235,9 +247,17 @@ class ChessBoard {
 			color = c;
 		}
 		boolean validMove (int fr, int fc, int tr, int tc) {
-			if ((fr == tr) || (fc == tc))
+			if (fr == tr) {
+				// if going horiz, check for pieces in between
+				for (int c = Math.min(fc, tc)+1; c < Math.max(fc, tc); c++)
+					if (!board[fr][c].isEmpty()) return false;
 				return true;
-			else
+			} else if (fc == tc) {
+				// if going vert, check for pieces in between
+				for (int r = Math.min(fr, tr)+1; r < Math.max(fr, tr); r++)
+					if (!board[r][fc].isEmpty()) return false;
+				return true;
+			} else
 				return false;
 		}
 	}
@@ -247,9 +267,15 @@ class ChessBoard {
 			color = c;
 		}
 		boolean validMove (int fr, int fc, int tr, int tc) {
-			if (fr - tr == fc - tc)
+			if (fr - tr == fc - tc) {
+				// if going in diagonal, check for pieces in between
+				int c = Math.min(fc,  tc)+1;
+				for (int r = Math.min(fr, tr)+1; r < Math.max(fr,  tr); r++) {
+					if (!board[r][c].isEmpty()) return false;
+					c++;
+				}
 				return true;
-			else
+			} else
 				return false;
 		}
 	}
