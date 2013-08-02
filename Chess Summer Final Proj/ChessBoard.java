@@ -34,6 +34,7 @@ class ChessBoard {
 			letterMap.put(s, new Integer(i));
 		}
 		
+		// set up board and pieces
 		board = new ChessPiece[9][9];
 		board[1][letterMap.get("a").intValue()] = new Rook(WHITE);
 		board[1][letterMap.get("b")] = new Knight(WHITE);
@@ -66,21 +67,25 @@ class ChessBoard {
 	void play() throws IOException {
 		// TEMP repeat while game is still going on, until one of players enters "QUIT"
 		// get move input
+		System.out.println("Welcome to Chess. Type \"QUIT\" at any time to quit the game.");
 		BufferedReader stream = new BufferedReader(new InputStreamReader(System.in));
 		String s1;
 		String s2;
 		while (true) {
+			System.out.print(activePlayer ? "Black" : "White");
+			System.out.print(", your turn. What is your move?\n");
 			System.out.println("From: ");
 			s1 = stream.readLine();
-			if (s1 == "QUIT") break;
+			if (s1.contains("QUIT")) break;
 			System.out.println("To: ");
 			s2 = stream.readLine();
-			if (s2 == "QUIT") break;
+			if (s2.contains("QUIT")) break;
 			// attempt to perform move
 			if (makeMove(s1,s2)) {
 				System.out.println("Move successful.");
 				// if successful, display new board
 				display();
+				activePlayer = !activePlayer;
 			}
 			else {
 				System.out.println("Invalid move, please try again.");
