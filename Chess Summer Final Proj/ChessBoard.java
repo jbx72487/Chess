@@ -183,10 +183,10 @@ class ChessBoard {
 						blackKingR = toR;
 						blackKingC = toC;
 					}
-					System.out.println(activePlayer+ " king moved to "+ toR + toC);	
 				}
-			} else if (board[fromR][fromC].getColor() != board[toR][toC].getColor()) {
-				// if the "to" isn't empty and it's on the other side, capture it
+			} else { // if the "to" isn't empty
+				// if it's on your own side, can't make this move
+				if (activePlayer == board[toR][toC].getColor()) return false; // "to" space must be on other side
 				System.out.println(board[toR][toC]+" captured.");
 				board[toR][toC].remove();
 				ChessPiece temp = board[toR][toC];
