@@ -15,7 +15,6 @@ class ChessBoard {
 	
 	// board holds pointers to all the ChessPiece objects
 	ChessPiece board[][];
-	HashMap<String, Integer> letterMap = new HashMap<String, Integer>();
 	
 	// coordinates of two kings
 	ChessCoord whiteKing;
@@ -30,24 +29,18 @@ class ChessBoard {
 		activePlayer = WHITE;
 		char ch;
 		String s;
-		// HashMap to store column names on chess board
-		for (int i = 1; i <=8; i++) {
-			ch = (char) ((int) 'a'+i-1);
-			s = String.valueOf(ch);
-			letterMap.put(s, new Integer(i));
-		}
 		
 		// set up board and pieces
 		board = new ChessPiece[9][9];
-		board[1][letterMap.get("a").intValue()] = new Rook(WHITE);
-		board[1][letterMap.get("b")] = new Knight(WHITE);
-		board[1][letterMap.get("c")] = new Bishop(WHITE);
-		board[1][letterMap.get("d")] = new King(WHITE);
-		whiteKing = new ChessCoord(1,letterMap.get("d"));
-		board[1][letterMap.get("e")] = new Queen(WHITE);
-		board[1][letterMap.get("f")] = new Bishop(WHITE);
-		board[1][letterMap.get("g")] = new Knight(WHITE);
-		board[1][letterMap.get("h")] = new Rook(WHITE);
+		board[1][1] = new Rook(WHITE);
+		board[1][2] = new Knight(WHITE);
+		board[1][3] = new Bishop(WHITE);
+		board[1][4] = new King(WHITE);
+		whiteKing = new ChessCoord(1,4);
+		board[1][5] = new Queen(WHITE);
+		board[1][6] = new Bishop(WHITE);
+		board[1][7] = new Knight(WHITE);
+		board[1][8] = new Rook(WHITE);
 		for (int r = 2; r < 8; r++) {
 			for (int c = 1; c<= 8; c++) {
 				if (r == 7)
@@ -58,16 +51,15 @@ class ChessBoard {
 					board[r][c] = new ChessPiece();
 			}
 		}
-		board[8][letterMap.get("a").intValue()] = new Rook(BLACK);
-		board[8][letterMap.get("b")] = new Knight(BLACK);
-		board[8][letterMap.get("c")] = new Bishop(BLACK);
-		board[8][letterMap.get("d")] = new King(BLACK);
-		blackKing = new ChessCoord(8,letterMap.get("d"));
-		board[8][letterMap.get("e")] = new Queen(BLACK);
-		board[8][letterMap.get("f")] = new Bishop(BLACK);
-		board[8][letterMap.get("g")] = new Knight(BLACK);
-		board[8][letterMap.get("h")] = new Rook(BLACK);
-		
+		board[8][1] = new Rook(BLACK);
+		board[8][2] = new Knight(BLACK);
+		board[8][3] = new Bishop(BLACK);
+		board[8][4] = new King(BLACK);
+		blackKing = new ChessCoord(1,4);
+		board[8][5] = new Queen(BLACK);
+		board[8][6] = new Bishop(BLACK);
+		board[8][7] = new Knight(BLACK);
+		board[8][8] = new Rook(BLACK);		
 		// play chess!
 		play();
 	}
@@ -160,12 +152,13 @@ class ChessBoard {
 	// makeMove tries to make a move and returns true if move is made or false if not
 	boolean makeMove(String m) throws IOException {
 		// parse the strings to get the positions indicated
+		// m is already lowercase by the time it gets here
 		int fromR, fromC, toR, toC;
 		try {
 			fromR = Integer.parseInt(m.substring(1, 2));
-			fromC = letterMap.get(m.substring(0,1));
+			fromC = ((int) m.charAt(0) - (int) 'a') + 1;
 			toR = Integer.parseInt(m.substring(4, 5));
-			toC = letterMap.get(m.substring(3,4));
+			toC = ((int) m.charAt(3) - (int) 'a') + 1;
 		}
 		catch (Exception e) {return false;}
 		
@@ -179,7 +172,7 @@ class ChessBoard {
 				getPiece(from).getColor() == activePlayer &&// can only move your own piece
 				!getPiece(from).isEmpty() && // "from" space must be occupied
 				!(from.isEqual(to)) && // "from" and "to" can't be the same space
-				board[fromR][fromC].validMove(from, to)) { // must be valid move based on that gamepiece
+				getPiece(from).validMove(from, to)) { // must be valid move based on that gamepiece
 			// if "to" space is empty, can just switch the "from" and "to"
 			if (getPiece(to).isEmpty()) {
 				ChessPiece temp = getPiece(to);
@@ -193,12 +186,9 @@ class ChessBoard {
 				}
 				if (getPiece(to).getName() == 'K') {
 					if (activePlayer == WHITE) {
-						// TEMP - figure out how to do this more elegantly in one assignment
-						whiteKing.row = toR;
-						whiteKing.col = toC;
+						whiteKing.change(toR, toC);
 					} else {
-						blackKing.row = toR;
-						blackKing.col = toC;
+						blackKing.change(toR, toC);
 					}
 				}
 			} else { // if the "to" isn't empty
@@ -256,6 +246,11 @@ class ChessBoard {
 		
 		boolean isEqual(ChessCoord a) {
 			return (row == a.row && col == a.col);
+		}
+		
+		void change(int r, int c) {
+			row = r;
+			col = c;
 		}
 	}
 	
