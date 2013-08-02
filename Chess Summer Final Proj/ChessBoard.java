@@ -20,7 +20,7 @@ class ChessBoard {
 	public static void main(String args[]) {
 		ChessBoard activeBoard = new ChessBoard();
 		activeBoard.display();
-		// activeBoard.play();
+		activeBoard.play();
 	}
 	
 	
@@ -67,7 +67,10 @@ class ChessBoard {
 		// get move input
 		// if move is valid...
 		// perform move
-		makeMove("A1","A5");
+		if (makeMove("A1","A5"))
+			System.out.println();
+			
+		display();
 		// display board
 		// if check or checkmate, say so
 	}
@@ -100,14 +103,23 @@ class ChessBoard {
 	// makeMove tries to make a move and returns true if move is made or false if not
 	boolean makeMove(String f, String t) {
 		// parse the strings to get the positions indicated
-		int fromR = letterMap.get(f.toLowerCase().charAt(0));
-		int fromC = Integer.parseInt(f.substring(1, f.length()));
-		int toR = letterMap.get(t.toLowerCase().charAt(0));
-		int toC = Integer.parseInt(f.substring(1, t.length()));
-		// TEMP fill in logic for moving
+		int fromR = Integer.parseInt(f.substring(1, f.length()));
+		int fromC = letterMap.get(f.toLowerCase().substring(0,1));
+		int toR = Integer.parseInt(t.substring(1, t.length()));
+		int toC = letterMap.get(t.toLowerCase().substring(0,1));
+		// TEMP fill in more logic for moving
 		if (board[fromR][fromC].validMove(fromR, fromC, toR, toC)) {
+			ChessPiece temp = board[toR][toC];
 			board[toR][toC] = board[fromR][fromC];
-			board[fromR][fromC] = null;
+			board[fromR][fromC] = temp;
+			
+			/* output for testing
+ 			System.out.println("Move from ("+fromR+", "+fromC+") to ("+toR+", "+toC+").");
+			System.out.println(temp);
+			System.out.println(board[fromR][fromC]);
+			System.out.println(board[toR][toC]);
+			*/
+			
 			return true;
 		} else return false;
 	}
