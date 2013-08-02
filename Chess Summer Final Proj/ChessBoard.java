@@ -8,10 +8,10 @@ import java.util.*;
 
 class ChessBoard {
 	// activePlayer shows who is playing
-	boolean activePlayer;
+	int activePlayer;
 	// constants WHITE and BLACK represent two players
-	static boolean WHITE = false;
-	static boolean BLACK = true;
+	static int WHITE = 1;
+	static int BLACK = -1;
 	
 	// board holds pointers to all the ChessPiece objects
 	ChessPiece board[][];
@@ -88,7 +88,7 @@ class ChessBoard {
 				if (hasCheck())
 					System.out.println("CHECK.");
 				display();
-				activePlayer = !activePlayer;
+				activePlayer = -1 * activePlayer;
 			}
 			else {
 				System.out.println("Invalid move, please try again.");
@@ -100,7 +100,7 @@ class ChessBoard {
 	}
 	
 	String getMove(BufferedReader stream) throws IOException {
-		System.out.print(activePlayer ? "Black" : "White");
+		System.out.print(activePlayer == WHITE ? "White" : "Black");
 		System.out.print(", your turn. What is your move? Please enter in format \"a1 a2\"\n");
 		return stream.readLine().toLowerCase();
 	}
@@ -136,6 +136,9 @@ class ChessBoard {
 	
 	// hasCheck checks whether current player has a check
 	boolean hasCheck() {
+		// pawn can eat from diagonally in front
+		// 
+		
 		return false;
 		// TEMP fill with logic for checking for check
 	}
@@ -236,7 +239,7 @@ class ChessBoard {
 	
 	class ChessPiece {
 		char pieceName;
-		boolean color;
+		int color;
 		
 		ChessPiece () {
 			// if empty, set pieceName to be null
@@ -266,7 +269,7 @@ class ChessBoard {
 			return pieceName;
 		}
 		 
-		boolean getColor() {
+		int getColor() {
 			return color;
 		}
 		
@@ -276,7 +279,7 @@ class ChessBoard {
 	}
 	
 	class King extends ChessPiece {
-		King(boolean c) {
+		King(int c) {
 			pieceName = 'K';
 			color = c;
 		}
@@ -291,7 +294,7 @@ class ChessBoard {
 		} 
 	}
 	class Queen extends ChessPiece {
-		Queen(boolean c) {
+		Queen(int c) {
 			pieceName = 'Q';
 			color = c;
 		}
@@ -328,7 +331,7 @@ class ChessBoard {
 		}
 	}
 	class Knight extends ChessPiece {
-		Knight(boolean c) {
+		Knight(int c) {
 			pieceName = 'N';
 			color = c;
 		}
@@ -341,7 +344,7 @@ class ChessBoard {
 		}
 	}
 	class Rook extends ChessPiece {
-		Rook(boolean c) {
+		Rook(int c) {
 			pieceName = 'R';
 			color = c;
 		}
@@ -361,7 +364,7 @@ class ChessBoard {
 		}
 	}
 	class Bishop extends ChessPiece {
-		Bishop(boolean c) {
+		Bishop(int c) {
 			pieceName = 'B';
 			color = c;
 		}
@@ -388,7 +391,7 @@ class ChessBoard {
 	}
 	class Pawn extends ChessPiece {
 		boolean hasMoved;
-		Pawn(boolean c) {
+		Pawn(int c) {
 			pieceName = 'P';
 			hasMoved = false;
 			color = c;
@@ -398,13 +401,13 @@ class ChessBoard {
 		}
 		boolean validMove (int fr, int fc, int tr, int tc) {
 			// if moving forward 1 in the same column and the target is empty, return true
-			if ((tr - fr == (color == WHITE ? 1 : -1)) && (fc == tc) && board[tr][tc].isEmpty())
+			if ((tr - fr == color) && (fc == tc) && board[tr][tc].isEmpty())
 				return true;
 			// if moving forward 1 and sideways 1 and the target is not empty, return true
-			else if ((tr - fr == (color == WHITE ? 1 : -1)) && (Math.abs(tc-fc) == 1) && !board[tr][tc].isEmpty())
+			else if ((tr - fr == color) && (Math.abs(tc-fc) == 1) && !board[tr][tc].isEmpty())
 				return true;
 			// if it's this pawn's fist move and moving forward 2 in the same column and the target is empty, return true
-			else if (!hasMoved && (tr - fr == (color == WHITE ? 2 : -2)) && (fc == tc) && board[tr][tc].isEmpty())
+			else if (!hasMoved && (tr - fr == color*2) && (fc == tc) && board[tr][tc].isEmpty())
 				return true;
 			else
 				return false;
