@@ -18,11 +18,11 @@ class ChessBoard {
 	HashMap<String, Integer> letterMap = new HashMap<String, Integer>();
 		
 	public static void main(String args[]) throws IOException {
-		ChessBoard activeBoard = new ChessBoard();
-		activeBoard.play();
+		new ChessBoard();
+		// get move input
 	}
 	
-	ChessBoard() {
+	ChessBoard() throws IOException {
 		activePlayer = WHITE;
 		char ch;
 		String s;
@@ -61,23 +61,20 @@ class ChessBoard {
 		board[8][letterMap.get("f")] = new Bishop(BLACK);
 		board[8][letterMap.get("g")] = new Knight(BLACK);
 		board[8][letterMap.get("h")] = new Rook(BLACK);
+		play();
 	}
 	
 	void play() throws IOException {
-		// TEMP repeat while game is still going on, until one of players enters "QUIT"
-		// get move input
 		System.out.println("Welcome to Chess. Type \"QUIT\" at any time to quit the game.");
 		display();
 		BufferedReader stream = new BufferedReader(new InputStreamReader(System.in));
-		String move, s1, s2;
+		String move;
 		while (true) {
-			System.out.print(activePlayer ? "Black" : "White");
-			System.out.print(", your turn. What is your move? Please enter in format \"a1 a2\"\n");
-			move = stream.readLine();
-			if (move.contains("QUIT")) break;
+			move = getMove(stream);
+			if (move.contains("quit")) break;
 			
 			// attempt to perform move
-			if (makeMove(move.toLowerCase())) {
+			if (makeMove(move)) {
 				System.out.println("Move successful.");
 				// if successful, display new board
 				display();
@@ -87,9 +84,15 @@ class ChessBoard {
 				System.out.println("Invalid move, please try again.");
 				display();
 			}
+			// if check or checkmate, say so
 		}
-		
-		// if check or checkmate, say so
+		System.out.println("Thanks for playing!");
+	}
+	
+	String getMove(BufferedReader stream) throws IOException {
+		System.out.print(activePlayer ? "Black" : "White");
+		System.out.print(", your turn. What is your move? Please enter in format \"a1 a2\"\n");
+		return stream.readLine().toLowerCase();
 	}
 	
 	void display() {
