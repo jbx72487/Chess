@@ -121,10 +121,14 @@ class ChessBoard {
 	// makeMove tries to make a move and returns true if move is made or false if not
 	boolean makeMove(String f, String t) {
 		// parse the strings to get the positions indicated
-		int fromR = Integer.parseInt(f.substring(1, f.length()));
-		int fromC = letterMap.get(f.toLowerCase().substring(0,1));
-		int toR = Integer.parseInt(t.substring(1, t.length()));
-		int toC = letterMap.get(t.toLowerCase().substring(0,1));
+		int fromR, fromC, toR, toC;
+		try {
+			fromR = Integer.parseInt(f.substring(1, f.length()));
+			fromC = letterMap.get(f.toLowerCase().substring(0,1));
+			toR = Integer.parseInt(t.substring(1, t.length()));
+			toC = letterMap.get(t.toLowerCase().substring(0,1));
+		}
+		catch (Exception e) {return false;}
 		// TEMP this output is for testing only
 		System.out.println("Move from ("+fromR+", "+fromC+") to ("+toR+", "+toC+").");
 		if (onBoard(fromR, fromC) && onBoard(toR, toC) && // both "from" and "to" spaces must be on the gameboard
@@ -135,7 +139,9 @@ class ChessBoard {
 				ChessPiece temp = board[toR][toC];
 				board[toR][toC] = board[fromR][fromC];
 				board[fromR][fromC] = temp;
-			} else {
+			} else if (board[fromR][fromC].getColor() != board[toR][toC].getColor()) {
+				// if the "to" isn't empty and it's on the other side, capture it
+				System.out.println(board[toR][toC]+" captured.");
 				board[toR][toC].remove();
 				ChessPiece temp = board[toR][toC];
 				board[toR][toC] = board[fromR][fromC];
