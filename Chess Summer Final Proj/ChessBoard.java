@@ -137,8 +137,10 @@ class ChessBoard {
 		// TEMP this output is for testing only
 		System.out.println("Move from ("+fromR+", "+fromC+") to ("+toR+", "+toC+").");
 		if (onBoard(fromR, fromC) && onBoard(toR, toC) && // both "from" and "to" spaces must be on the gameboard
+				board[fromR][fromC].getColor() == activePlayer &&// can only move your own piece
 				!board[fromR][fromC].isEmpty() && // "from" space must be occupied
 				!(fromR == toR && fromC == toC) && // "from" and "to" can't be the same space
+				board[toR][toC].getColor() != activePlayer &&// "to" can't be a piece of your own color
 				board[fromR][fromC].validMove(fromR, fromC, toR, toC)) { // must be valid move based on that gamepiece
 			// if "to" space is empty, can just switch the "from" and "to"
 			if (board[toR][toC].isEmpty()) {
