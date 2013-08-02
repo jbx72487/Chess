@@ -133,6 +133,7 @@ class ChessBoard {
 		System.out.println("Move from ("+fromR+", "+fromC+") to ("+toR+", "+toC+").");
 		if (onBoard(fromR, fromC) && onBoard(toR, toC) && // both "from" and "to" spaces must be on the gameboard
 				!board[fromR][fromC].isEmpty() && // "from" space must be occupied
+				!(fromR == toR && fromC == toC) && // "from" and "to" can't be the same space
 				board[fromR][fromC].validMove(fromR, fromC, toR, toC)) { // must be valid move based on that gamepiece
 			// if "to" space is empty, can just switch the "from" and "to"
 			if (board[toR][toC].isEmpty()) {
@@ -223,10 +224,18 @@ class ChessBoard {
 		}
 		boolean validMove (int fr, int fc, int tr, int tc) {
 			// can go in diagonals or straight lines
-			if (fr - tr == fc - tc) {
-				// if going in diagonal, check for pieces in between
-				int c = Math.min(fc,  tc)+1;
-				for (int r = Math.min(fr, tr)+1; r < Math.max(fr,  tr); r++) {
+			if ((fc - tc)/(fr - tr) == 1) {
+				// if positive slope
+				int c = Math.min(fc, tc) + 1;
+				for (int r = Math.min(fr,tr) + 1; r < Math.max(fr, tr); r++) {
+					if (!board[r][c].isEmpty()) return false;
+					c++;
+				}
+				return true;
+			} else if ((fc - tc)/(fr - tr) == -1) {
+				// if negative slope
+				int c = Math.min(fc, tc) + 1;
+				for (int r = Math.max(fr,tr) - 1; r > Math.min(fr, tr); r--) {
 					if (!board[r][c].isEmpty()) return false;
 					c++;
 				}
@@ -284,10 +293,18 @@ class ChessBoard {
 			color = c;
 		}
 		boolean validMove (int fr, int fc, int tr, int tc) {
-			if (fr - tr == fc - tc) {
-				// if going in diagonal, check for pieces in between
-				int c = Math.min(fc,  tc)+1;
-				for (int r = Math.min(fr, tr)+1; r < Math.max(fr,  tr); r++) {
+			if ((fc - tc)/(fr - tr) == 1) {
+				// if positive slope
+				int c = Math.min(fc, tc) + 1;
+				for (int r = Math.min(fr,tr) + 1; r < Math.max(fr, tr); r++) {
+					if (!board[r][c].isEmpty()) return false;
+					c++;
+				}
+				return true;
+			} else if ((fc - tc)/(fr - tr) == -1) {
+				// if negative slope
+				int c = Math.min(fc, tc) + 1;
+				for (int r = Math.max(fr,tr) - 1; r > Math.min(fr, tr); r--) {
 					if (!board[r][c].isEmpty()) return false;
 					c++;
 				}
