@@ -19,7 +19,6 @@ class ChessBoard {
 		
 	public static void main(String args[]) throws IOException {
 		ChessBoard activeBoard = new ChessBoard();
-		activeBoard.display();
 		activeBoard.play();
 	}
 	
@@ -68,6 +67,7 @@ class ChessBoard {
 		// TEMP repeat while game is still going on, until one of players enters "QUIT"
 		// get move input
 		System.out.println("Welcome to Chess. Type \"QUIT\" at any time to quit the game.");
+		display();
 		BufferedReader stream = new BufferedReader(new InputStreamReader(System.in));
 		String s1;
 		String s2;
@@ -97,7 +97,15 @@ class ChessBoard {
 	}
 	
 	void display() {
+		// top row labels
+		System.out.print("  ");
+		for (int c = (int)('A'); c <= (int) ('H'); c++)
+			System.out.print("  "+ (char) c +" ");
+		System.out.println();
+		System.out.println();
+		// actual board
 		for (int r = 8; r >= 1; r--) {
+			System.out.print(r + " ");
 			for (int c = 1; c <= 8; c++) {
 				if (board[r][c].isEmpty())
 					System.out.print(" -- ");
@@ -106,8 +114,14 @@ class ChessBoard {
 					System.out.print(" "+ color + board[r][c]+" ");
 				}
 			}
+			System.out.print(" " + r);
 			System.out.println();
 		}
+		// bottom row labels
+		System.out.print("  ");
+		System.out.println();
+		for (int c = (int)('A'); c <= (int) ('H'); c++)
+			System.out.print("  "+ (char) c +" ");
 		System.out.println();
 	}
 	
