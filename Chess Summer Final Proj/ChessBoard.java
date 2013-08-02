@@ -16,6 +16,9 @@ class ChessBoard {
 	// board holds pointers to all the ChessPiece objects
 	ChessPiece board[][];
 	HashMap<String, Integer> letterMap = new HashMap<String, Integer>();
+	
+	// coordinates of two kings
+	int whiteKingR, whiteKingC, blackKingR, blackKingC;
 		
 	public static void main(String args[]) throws IOException {
 		new ChessBoard();
@@ -39,6 +42,8 @@ class ChessBoard {
 		board[1][letterMap.get("b")] = new Knight(WHITE);
 		board[1][letterMap.get("c")] = new Bishop(WHITE);
 		board[1][letterMap.get("d")] = new King(WHITE);
+		whiteKingR = 1;
+		whiteKingC = letterMap.get("d");
 		board[1][letterMap.get("e")] = new Queen(WHITE);
 		board[1][letterMap.get("f")] = new Bishop(WHITE);
 		board[1][letterMap.get("g")] = new Knight(WHITE);
@@ -57,10 +62,14 @@ class ChessBoard {
 		board[8][letterMap.get("b")] = new Knight(BLACK);
 		board[8][letterMap.get("c")] = new Bishop(BLACK);
 		board[8][letterMap.get("d")] = new King(BLACK);
+		whiteKingR = 8;
+		whiteKingC = letterMap.get("d");
 		board[8][letterMap.get("e")] = new Queen(BLACK);
 		board[8][letterMap.get("f")] = new Bishop(BLACK);
 		board[8][letterMap.get("g")] = new Knight(BLACK);
 		board[8][letterMap.get("h")] = new Rook(BLACK);
+		
+		// play chess!
 		play();
 	}
 	
@@ -76,7 +85,8 @@ class ChessBoard {
 			// attempt to perform move
 			if (makeMove(move)) {
 				System.out.println("Move successful.");
-				// if successful, display new board
+				if (hasCheck())
+					System.out.println("CHECK.");
 				display();
 				activePlayer = !activePlayer;
 			}
@@ -165,6 +175,16 @@ class ChessBoard {
 					if (!p.hasMoved)
 						p.move();
 				}
+				if (board[toR][toC].getName() == 'K') {
+					if (activePlayer == WHITE) {
+						whiteKingR = toR;
+						whiteKingC = toC;
+					} else {
+						blackKingR = toR;
+						blackKingC = toC;
+					}
+					System.out.println(activePlayer+ " king moved to "+ toR + toC);	
+				}
 			} else if (board[fromR][fromC].getColor() != board[toR][toC].getColor()) {
 				// if the "to" isn't empty and it's on the other side, capture it
 				System.out.println(board[toR][toC]+" captured.");
@@ -181,6 +201,7 @@ class ChessBoard {
 			System.out.println(board[toR][toC]);
 			*/
 			
+			// Promotion
 			// If the pawn reaches a square on the back rank of the opponent, it promotes to the player's choice of a queen, rook, bishop, or knight
 			if (board[toR][toC].getName() == 'P' &&
 					((board[toR][toC].getColor() == WHITE && toR == 8) || (board[toR][toC].getColor() == BLACK && toR == 1))) {
@@ -202,6 +223,7 @@ class ChessBoard {
 				case 'N': board[toR][toC] = new Knight(activePlayer); break;
 				}
 			}
+			
 			return true;
 		} else return false;
 	}
@@ -260,7 +282,8 @@ class ChessBoard {
 		}
 		// king can move exactly one vacant square in any direction
 		boolean validMove (int fr, int fc, int tr, int tc) {
-			if (((Math.abs(fr - tr) == 1) && (Math.abs(fc - tc) == 0)) || ((Math.abs(fr - tr) == 0) && (Math.abs(fc - tc) == 1)))
+			if (((Math.abs(fr - tr) == 1) && (Math.abs(fc - tc) == 0)) || ((Math.abs(fr - tr) == 0) && (Math.abs(fc - tc) == 1)) ||
+					(Math.abs(fr - tr) == 1 && Math.abs(fc - tc) == 1))
 				return true;
 			else
 				return false;
