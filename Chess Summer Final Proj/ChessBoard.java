@@ -69,19 +69,15 @@ class ChessBoard {
 		System.out.println("Welcome to Chess. Type \"QUIT\" at any time to quit the game.");
 		display();
 		BufferedReader stream = new BufferedReader(new InputStreamReader(System.in));
-		String s1;
-		String s2;
+		String move, s1, s2;
 		while (true) {
 			System.out.print(activePlayer ? "Black" : "White");
-			System.out.print(", your turn. What is your move?\n");
-			System.out.println("From: ");
-			s1 = stream.readLine();
-			if (s1.contains("QUIT")) break;
-			System.out.println("To: ");
-			s2 = stream.readLine();
-			if (s2.contains("QUIT")) break;
+			System.out.print(", your turn. What is your move? Please enter in format \"a1 a2\"\n");
+			move = stream.readLine();
+			if (move.contains("QUIT")) break;
+			
 			// attempt to perform move
-			if (makeMove(s1,s2)) {
+			if (makeMove(move.toLowerCase())) {
 				System.out.println("Move successful.");
 				// if successful, display new board
 				display();
@@ -138,16 +134,16 @@ class ChessBoard {
 	}
 	
 	// makeMove tries to make a move and returns true if move is made or false if not
-	boolean makeMove(String f, String t) throws IOException {
+	boolean makeMove(String m) throws IOException {
 		// parse the strings to get the positions indicated
 		int fromR, fromC, toR, toC;
 		try {
-			fromR = Integer.parseInt(f.substring(1, f.length()));
-			fromC = letterMap.get(f.toLowerCase().substring(0,1));
-			toR = Integer.parseInt(t.substring(1, t.length()));
-			toC = letterMap.get(t.toLowerCase().substring(0,1));
+			fromR = Integer.parseInt(m.substring(1, 2));
+			fromC = letterMap.get(m.substring(0,1));
+			toR = Integer.parseInt(m.substring(4, 5));
+			toC = letterMap.get(m.substring(3,4));
 		}
-		catch (Exception e) {return false;}
+		catch (Exception e) {System.out.println("parse error"); return false;}
 		// TEMP this output is for testing only
 		System.out.println("Move from ("+fromR+", "+fromC+") to ("+toR+", "+toC+").");
 		if (onBoard(fromR, fromC) && onBoard(toR, toC) && // both "from" and "to" spaces must be on the gameboard
@@ -266,7 +262,7 @@ class ChessBoard {
 			else
 				return false;
 			// TEMP add possibility of castling
-		}
+		} 
 	}
 	class Queen extends ChessPiece {
 		Queen(boolean c) {
