@@ -129,11 +129,18 @@ class ChessBoard {
 		System.out.println("Move from ("+fromR+", "+fromC+") to ("+toR+", "+toC+").");
 		if (onBoard(fromR, fromC) && onBoard(toR, toC) && // both "from" and "to" spaces must be on the gameboard
 				!board[fromR][fromC].isEmpty() && // "from" space must be occupied
-				board[toR][toC].isEmpty() && //"to" space must be empty
 				board[fromR][fromC].validMove(fromR, fromC, toR, toC)) { // must be valid move based on that gamepiece
-			ChessPiece temp = board[toR][toC];
-			board[toR][toC] = board[fromR][fromC];
-			board[fromR][fromC] = temp;
+			// if "to" space is empty, can just switch the "from" and "to"
+			if (board[toR][toC].isEmpty()) {
+				ChessPiece temp = board[toR][toC];
+				board[toR][toC] = board[fromR][fromC];
+				board[fromR][fromC] = temp;
+			} else {
+				board[toR][toC].remove();
+				ChessPiece temp = board[toR][toC];
+				board[toR][toC] = board[fromR][fromC];
+				board[fromR][fromC] = temp;
+			}
 			// TEMP still need to test if everything in middle is empty
 			
 			/* output for testing
@@ -182,6 +189,10 @@ class ChessBoard {
 		 
 		boolean getColor() {
 			return color;
+		}
+		
+		void remove() {
+			pieceName = ' ';
 		}
 	}
 	
@@ -287,7 +298,11 @@ class ChessBoard {
 			color = c;
 		}
 		boolean validMove (int fr, int fc, int tr, int tc) {
-			if ((tr - fr == (color == WHITE ? 1 : -1)) && (fc == tc))
+			// if moving forward 1 in the same column and the target is empty, return true
+			if ((tr - fr == (color == WHITE ? 1 : -1)) && (fc == tc) && board[tr][tc].isEmpty())
+				return true;
+			// if moving forward 1 and sideways 1 and the target is not empty, return true
+			else if ((tr - fr == (color == WHITE ? 1 : -1)) && (Math.abs(tc-fc) == 1) && !board[tr][tc].isEmpty())
 				return true;
 			else
 				return false;
