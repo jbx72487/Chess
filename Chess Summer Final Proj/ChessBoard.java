@@ -66,17 +66,26 @@ class ChessBoard {
 	void play() throws IOException {
 		// TEMP repeat while game is still going on, until one of players enters "QUIT"
 		// get move input
-		// if move is valid...
-		// perform move
 		BufferedReader stream = new BufferedReader(new InputStreamReader(System.in));
-		String s1 = stream.readLine();
-		String s2 = stream.readLine();
-		if (makeMove(s1,s2))
-			System.out.println("Move successful");
-		else
-			System.out.println("Attempted bad move");
-		display();
-		// display board
+		String s1;
+		String s2;
+		while (true) {
+			System.out.println("From: ");
+			s1 = stream.readLine();
+			if (s1 == "QUIT") break;
+			System.out.println("To: ");
+			s2 = stream.readLine();
+			if (s2 == "QUIT") break;
+			// attempt to perform move
+			if (makeMove(s1,s2)) {
+				System.out.println("Move successful.");
+				// if successful, display new board
+				display();
+			}
+			else
+				System.out.println("Invalid move, please try again.");
+		}
+		
 		// if check or checkmate, say so
 	}
 	
@@ -114,12 +123,16 @@ class ChessBoard {
 		int fromC = letterMap.get(f.toLowerCase().substring(0,1));
 		int toR = Integer.parseInt(t.substring(1, t.length()));
 		int toC = letterMap.get(t.toLowerCase().substring(0,1));
-		// TEMP fill in more logic for moving
+		// TEMP this output is for testing only
 		System.out.println("Move from ("+fromR+", "+fromC+") to ("+toR+", "+toC+").");
-		if (board[fromR][fromC].validMove(fromR, fromC, toR, toC)) {
+		if (onBoard(fromR, fromC) && onBoard(toR, toC) && // both "from" and "to" spaces must be on the gameboard
+				!board[fromR][fromC].isEmpty() && // "from" space must be occupied
+				board[toR][toC].isEmpty() && //"to" space must be empty
+				board[fromR][fromC].validMove(fromR, fromC, toR, toC)) { // must be valid move based on that gamepiece
 			ChessPiece temp = board[toR][toC];
 			board[toR][toC] = board[fromR][fromC];
 			board[fromR][fromC] = temp;
+			// TEMP still need to test if everything in middle is empty
 			
 			/* output for testing
  			System.out.println(temp);
@@ -129,6 +142,12 @@ class ChessBoard {
 			
 			return true;
 		} else return false;
+	}
+	
+	// checks to make sure a point is on board
+	boolean onBoard(int r, int c) {
+		return (r >= 1 && r <= 8 &&
+				c >= 1 && c <= 8);
 	}
 	
 	class ChessPiece {
@@ -242,7 +261,7 @@ class ChessBoard {
 			color = c;
 		}
 		boolean validMove (int fr, int fc, int tr, int tc) {
-			if ((tr - fr == 1) && (fc == tc))
+			if ((tr - fr == (color == WHITE ? 1 : -1)) && (fc == tc))
 				return true;
 			else
 				return false;
