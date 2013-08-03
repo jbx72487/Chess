@@ -160,7 +160,6 @@ class ChessBoard {
 		int inc = activePlayer*-1;
 		if (lookFor(r + inc, c + 1, 'P', activePlayer) ||
 				lookFor(r + inc, c - 1, 'P', activePlayer)) {
-			System.out.println("Checked by Pawn. Activeplayer = "+activePlayer+". Opposite king location is"+r+c+". Black King is"+blackKing.row+blackKing.col+". White King is "+whiteKing.row+whiteKing.col);
 			return true;
 		}
 		
@@ -173,7 +172,6 @@ class ChessBoard {
 				lookFor(r - 1, c + 2, 'N', activePlayer) ||
 				lookFor(r - 2, c - 1, 'N', activePlayer) ||
 				lookFor(r - 1, c - 2, 'N', activePlayer)) {
-			System.out.println("Checked by Knight");
 			return true;
 		}
 		
@@ -186,15 +184,14 @@ class ChessBoard {
 				lookFor(r, c - 1, 'K', activePlayer) ||
 				lookFor(r + 1, c, 'K', activePlayer) ||
 				lookFor(r - 1, c, 'K', activePlayer)) {
-			System.out.println("Checked by King");
 			return true;
 		}
 		
-		// look for rook horiz or vert in any direction
+		// look for rook or queen horiz or vert in any direction
 		// increase row, col stays same
 		r = otherKing.row + 1;
 		while(onBoard(r,c)) {
-			if (getPiece(r, c).getName() == 'R' && getPiece(r,c).getColor() == activePlayer) return true;
+			if ((getPiece(r, c).getName() == 'R' || getPiece(r, c).getName() == 'Q') && getPiece(r,c).getColor() == activePlayer) return true;
 			// if it's a piece other than a space, then you've encountered some other piece and that path is safe
 			else if (getPiece(r, c).getName() != ' ') break;
 			r++;
@@ -202,7 +199,7 @@ class ChessBoard {
 		// decrease row, col stays same
 		r = otherKing.row - 1;
 		while(onBoard(r,c)) {
-			if (getPiece(r, c).getName() == 'R' && getPiece(r,c).getColor() == activePlayer) return true;
+			if ((getPiece(r, c).getName() == 'R' || getPiece(r, c).getName() == 'Q') && getPiece(r,c).getColor() == activePlayer) return true;
 			else if (getPiece(r, c).getName() != ' ') break;
 			r--;
 		}
@@ -210,36 +207,57 @@ class ChessBoard {
 		r = otherKing.row;
 		c = otherKing.col + 1;
 		while(onBoard(r,c)) {
-			if (getPiece(r, c).getName() == 'R' && getPiece(r,c).getColor() == activePlayer) return true;
+			if ((getPiece(r, c).getName() == 'R' || getPiece(r, c).getName() == 'Q') && getPiece(r,c).getColor() == activePlayer) return true;
 			else if (getPiece(r, c).getName() != ' ') break;
 			c++;
 		}
 		// same row, decrease column
 		c = otherKing.col - 1;
 		while(onBoard(r,c)) {
-			if (getPiece(r, c).getName() == 'R' && getPiece(r,c).getColor() == activePlayer) return true;
+			if ((getPiece(r, c).getName() == 'R' || getPiece(r, c).getName() == 'Q') && getPiece(r,c).getColor() == activePlayer) return true;
 			else if (getPiece(r, c).getName() != ' ') break;
 			c--;
 		}
 		
-		// look for bishop diag in any direction
+		// look for bishop or queen diag in any direction
 		// increase row, increase col
 		r = otherKing.row+1;
 		c = otherKing.col+1;
 		while(onBoard(r,c)) {
-			if (getPiece(r, c).getName() == 'R' && getPiece(r,c).getColor() == activePlayer) return true;
+			if ((getPiece(r, c).getName() == 'B' || getPiece(r, c).getName() == 'Q') && getPiece(r,c).getColor() == activePlayer) return true;
 			else if (getPiece(r, c).getName() != ' ') break;
 			r++;
 			c++;
 		}
-		
-		
-		
-		// look for queen horiz, vert, or diag in any direction
-		
+		// increase row, increase col
+		r = otherKing.row-1;
+		c = otherKing.col-1;
+		while(onBoard(r,c)) {
+			if ((getPiece(r, c).getName() == 'B' || getPiece(r, c).getName() == 'Q') && getPiece(r,c).getColor() == activePlayer) return true;
+			else if (getPiece(r, c).getName() != ' ') break;
+			r--;
+			c--;
+		}
+		// increase row, increase col
+		r = otherKing.row+1;
+		c = otherKing.col-1;
+		while(onBoard(r,c)) {
+			if ((getPiece(r, c).getName() == 'B' || getPiece(r, c).getName() == 'Q') && getPiece(r,c).getColor() == activePlayer) return true;
+			else if (getPiece(r, c).getName() != ' ') break;
+			r++;
+			c--;
+		}
+		// increase row, increase col
+		r = otherKing.row-1;
+		c = otherKing.col+1;
+		while(onBoard(r,c)) {
+			if ((getPiece(r, c).getName() == 'B' || getPiece(r, c).getName() == 'Q') && getPiece(r,c).getColor() == activePlayer) return true;
+			else if (getPiece(r, c).getName() != ' ') break;
+			r--;
+			c++;
+		}
 		
 		return false;
-		// TEMP fill with logic for checking for check
 	}
 	
 	// hasCheck checks whether current player has a checkmate
