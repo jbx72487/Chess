@@ -1,5 +1,4 @@
 import java.io.*;
-import java.util.*;
 
 /* Chess Board
  * 
@@ -19,6 +18,10 @@ class ChessBoard {
 	// coordinates of two kings
 	ChessCoord whiteKing;
 	ChessCoord blackKing;
+	
+	BufferedReader inStream;
+	PrintWriter outStream;
+	
 		
 	public static void main(String args[]) throws IOException {
 		new ChessBoard();
@@ -27,8 +30,9 @@ class ChessBoard {
 	
 	ChessBoard() throws IOException {
 		activePlayer = WHITE;
-		char ch;
-		String s;
+		
+		inStream = new BufferedReader(new InputStreamReader(System.in));
+		outStream = new PrintWriter(System.out, true);
 		
 		// set up board and pieces
 		board = new ChessPiece[9][9];
@@ -74,62 +78,60 @@ class ChessBoard {
 	}
 	
 	void play() throws IOException {
-		System.out.println("Welcome to Chess. Type \"QUIT\" at any time to quit the game.");
+		outStream.println("Welcome to Chess. Type \"QUIT\" at any time to quit the game.");
 		display();
-		BufferedReader stream = new BufferedReader(new InputStreamReader(System.in));
 		String move;
 		while (true) {
-			move = getMove(stream);
+			move = getMove(inStream);
 			if (move.contains("quit")) break;
 			
 			// attempt to perform move
 			if (makeMove(move)) {
-				System.out.println("Move successful.");
 				if (hasCheck())
-					System.out.println("CHECK.");
+					outStream.println("CHECK.");
 				display();
 				activePlayer = -1 * activePlayer;
 			}
 			else {
-				System.out.println("Invalid move, please try again.");
+				outStream.println("Invalid move, please try again.");
 				display();
 			}
 			// if check or checkmate, say so
 		}
-		System.out.println("Thanks for playing!");
+		outStream.println("Thanks for playing!");
 	}
 	
-	String getMove(BufferedReader stream) throws IOException {
-		System.out.print(activePlayer == WHITE ? "White" : "Black");
-		System.out.print(", your turn. What is your move? Please enter in format \"a1 a2\"\n");
-		return stream.readLine().toLowerCase();
+	String getMove(BufferedReader inStream) throws IOException {
+		outStream.print(activePlayer == WHITE ? "White" : "Black");
+		outStream.print(", your turn. What is your move? Please enter in format \"a1 a2\"\n");
+		return inStream.readLine().toLowerCase();
 	}
 	
 	void display() {
 		// top row labels
-		System.out.print("  ");
+		outStream.print("  ");
 		for (int c = (int)('A'); c <= (int) ('H'); c++)
-			System.out.print("  "+ (char) c +" ");
-		System.out.println();
+			outStream.print("  "+ (char) c +" ");
+		outStream.println();
 		// actual board
 		for (int r = 8; r >= 1; r--) {
-			System.out.print(r + " ");
+			outStream.print(r + " ");
 			for (int c = 1; c <= 8; c++) {
 				if (getPiece(r,c).isEmpty())
-					System.out.print(" -- ");
+					outStream.print(" -- ");
 				else {
 					int color = getPiece(r,c).getColor() == BLACK ? 1 : 0;
-					System.out.print(" "+ color + getPiece(r,c)+" ");
+					outStream.print(" "+ color + getPiece(r,c)+" ");
 				}
 			}
-			System.out.print(" " + r);
-			System.out.println();
+			outStream.print(" " + r);
+			outStream.println();
 		}
 		// bottom row labels
-		System.out.print("  ");
+		outStream.print("  ");
 		for (int c = (int)('A'); c <= (int) ('H'); c++)
-			System.out.print("  "+ (char) c +" ");
-		System.out.println();
+			outStream.print("  "+ (char) c +" ");
+		outStream.println();
 	}
 	
 	boolean onBoard(int r, int c) {
@@ -284,7 +286,7 @@ class ChessBoard {
 		
 		
 		// TEMP this output is for testing only
-		System.out.println("Move from ("+fromR+", "+fromC+") to ("+toR+", "+toC+").");
+		outStream.println("Move from ("+fromR+", "+fromC+") to ("+toR+", "+toC+").");
 		if (from.isOnBoard() && to.isOnBoard() && // both "from" and "to" spaces must be on the gameboard
 				getPiece(from).getColor() == activePlayer &&// can only move your own piece
 				!getPiece(from).isEmpty() && // "from" space must be occupied
@@ -311,7 +313,7 @@ class ChessBoard {
 			} else { // if the "to" isn't empty
 				// if it's on your own side, can't make this move
 				if (activePlayer == getPiece(toR,toC).getColor()) return false; // "to" space must be on other side
-				System.out.println(getPiece(toR,toC)+" captured.");
+				outStream.println(getPiece(toR,toC)+" captured.");
 				getPiece(to).remove();
 				ChessPiece temp = getPiece(to);
 				board[toR][toC] = getPiece(from);
@@ -322,13 +324,12 @@ class ChessBoard {
 			// If the pawn reaches a square on the back rank of the opponent, it promotes to the player's choice of a queen, rook, bishop, or knight
 			if (getPiece(toR,toC).getName() == 'P' &&
 					((getPiece(toR,toC).getColor() == WHITE && toR == 8) || (getPiece(toR,toC).getColor() == BLACK && toR == 1))) {
-				System.out.println("Congratulations! Your pawn has reached the opposite end of the board. Would you like to replace it with a Queen, Rook, Bishop, or Knight?");
-				BufferedReader stream = new BufferedReader(new InputStreamReader(System.in));
+				outStream.println("Congratulations! Your pawn has reached the opposite end of the board. Would you like to replace it with a Queen, Rook, Bishop, or Knight?");
 				String s;
 				char choice;
 				while (true) {
-					System.out.print("Please enter your choice: Q, R, B, or N: ");
-					s = stream.readLine();
+					outStream.print("Please enter your choice: Q, R, B, or N: ");
+					s = inStream.readLine();
 					choice = s.toUpperCase().charAt(0);
 					if (choice == 'Q' || choice == 'R' || choice == 'B' || choice == 'N')
 						break;
