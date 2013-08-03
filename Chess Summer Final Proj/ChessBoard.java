@@ -55,7 +55,7 @@ class ChessBoard {
 		board[8][2] = new Knight(BLACK);
 		board[8][3] = new Bishop(BLACK);
 		board[8][4] = new King(BLACK);
-		blackKing = new ChessCoord(1,4);
+		blackKing = new ChessCoord(8,4);
 		board[8][5] = new Queen(BLACK);
 		board[8][6] = new Bishop(BLACK);
 		board[8][7] = new Knight(BLACK);
@@ -132,26 +132,110 @@ class ChessBoard {
 		System.out.println();
 	}
 	
-	boolean lookFor (char n, int r, int c) {
-		// checks if there is a ChessPiece that matches n at coordinate (r, c)
+	boolean onBoard(int r, int c) {
 		if (r < 1 || r > 8 || c < 1 || c > 8)
 			return false;
+		return true;
+	}
+	
+	boolean lookFor (int r, int c, char n, int p) {
+		// checks if there is a ChessPiece that matches n at coordinate (r, c)r!onBoard(r, c))
+		if (!onBoard(r, c))	
+			return false;
 		else {
-			return (getPiece(r, c).getName() == n);
+			return (getPiece(r, c).getName() == n && getPiece(r,c).getColor() == p);
 		}
 	}
+	
 	// hasCheck checks whether current player has a check
 	boolean hasCheck() {
-		// look for pawn 1 space diagonally in front
-		// TEMP not sure if this is best way to check if everything is on board. instantiating a new object each time seems wasteful, but making an "onBoard(int r, int c)" seems redundant since there's already a ChessCoord method for similar purpose? 
+
 		ChessCoord otherKing = activePlayer == WHITE ? blackKing : whiteKing;
+		
+		int r = otherKing.row;
+		int c = otherKing.col;
+		
+		// look for pawn 1 space diagonally in front
+		// increment (+/- 1) depends on which player is active (which direction player faces)
+		int inc = activePlayer*-1;
+		if (lookFor(r + inc, c + 1, 'P', activePlayer) ||
+				lookFor(r + inc, c - 1, 'P', activePlayer)) {
+			System.out.println("Checked by Pawn. Activeplayer = "+activePlayer+". Opposite king location is"+r+c+". Black King is"+blackKing.row+blackKing.col+". White King is "+whiteKing.row+whiteKing.col);
+			return true;
+		}
+		
+		// look for knight an "L" away
+		if (lookFor(r + 2, c + 1, 'N', activePlayer) ||
+				lookFor(r + 1, c + 2, 'N', activePlayer) ||
+				lookFor(r + 2, c - 1, 'N', activePlayer) ||
+				lookFor(r + 1, c - 2, 'N', activePlayer) ||
+				lookFor(r - 2, c + 1, 'N', activePlayer) ||
+				lookFor(r - 1, c + 2, 'N', activePlayer) ||
+				lookFor(r - 2, c - 1, 'N', activePlayer) ||
+				lookFor(r - 1, c - 2, 'N', activePlayer)) {
+			System.out.println("Checked by Knight");
+			return true;
+		}
+		
+		// look for king 1 space in any direction
+		if (lookFor(r + 1, c + 1, 'K', activePlayer) ||
+				lookFor(r + 1, c - 1, 'K', activePlayer) ||
+				lookFor(r - 1, c + 1, 'K', activePlayer) ||
+				lookFor(r - 1, c - 1, 'K', activePlayer) ||
+				lookFor(r, c + 1, 'K', activePlayer) ||
+				lookFor(r, c - 1, 'K', activePlayer) ||
+				lookFor(r + 1, c, 'K', activePlayer) ||
+				lookFor(r - 1, c, 'K', activePlayer)) {
+			System.out.println("Checked by King");
+			return true;
+		}
+		
 		// look for rook horiz or vert in any direction
+		// increase row, col stays same
+		r = otherKing.row + 1;
+		while(onBoard(r,c)) {
+			if (getPiece(r, c).getName() == 'R' && getPiece(r,c).getColor() == activePlayer) return true;
+			// if it's a piece other than a space, then you've encountered some other piece and that path is safe
+			else if (getPiece(r, c).getName() != ' ') break;
+			r++;
+		}
+		// decrease row, col stays same
+		r = otherKing.row - 1;
+		while(onBoard(r,c)) {
+			if (getPiece(r, c).getName() == 'R' && getPiece(r,c).getColor() == activePlayer) return true;
+			else if (getPiece(r, c).getName() != ' ') break;
+			r--;
+		}
+		// same row, increase column
+		r = otherKing.row;
+		c = otherKing.col + 1;
+		while(onBoard(r,c)) {
+			if (getPiece(r, c).getName() == 'R' && getPiece(r,c).getColor() == activePlayer) return true;
+			else if (getPiece(r, c).getName() != ' ') break;
+			c++;
+		}
+		// same row, decrease column
+		c = otherKing.col - 1;
+		while(onBoard(r,c)) {
+			if (getPiece(r, c).getName() == 'R' && getPiece(r,c).getColor() == activePlayer) return true;
+			else if (getPiece(r, c).getName() != ' ') break;
+			c--;
+		}
 		
 		// look for bishop diag in any direction
-		// look for queen horiz, vert, or diag in any direction
-		// look for king 1 space in any direction
-		// look for knight an "L" away
+		// increase row, increase col
+		r = otherKing.row+1;
+		c = otherKing.col+1;
+		while(onBoard(r,c)) {
+			if (getPiece(r, c).getName() == 'R' && getPiece(r,c).getColor() == activePlayer) return true;
+			else if (getPiece(r, c).getName() != ' ') break;
+			r++;
+			c++;
+		}
 		
+		
+		
+		// look for queen horiz, vert, or diag in any direction
 		
 		
 		return false;
@@ -183,7 +267,7 @@ class ChessBoard {
 		
 		// TEMP this output is for testing only
 		System.out.println("Move from ("+fromR+", "+fromC+") to ("+toR+", "+toC+").");
-		if (from.isValid() && to.isValid() && // both "from" and "to" spaces must be on the gameboard
+		if (from.isOnBoard() && to.isOnBoard() && // both "from" and "to" spaces must be on the gameboard
 				getPiece(from).getColor() == activePlayer &&// can only move your own piece
 				!getPiece(from).isEmpty() && // "from" space must be occupied
 				!(from.isEqual(to)) && // "from" and "to" can't be the same space
@@ -252,10 +336,9 @@ class ChessBoard {
 			col = c;
 		}
 		
-		boolean isValid() {
+		boolean isOnBoard() {
 			// checks to make sure a point is on board
-			return (row >= 1 && row <= 8 &&
-					col >= 1 && col <= 8);
+			return onBoard(row, col);
 		}
 		
 		boolean isEqual(ChessCoord a) {
