@@ -64,8 +64,13 @@ class ChessBoard {
 		play();
 	}
 	
+	
 	ChessPiece getPiece(ChessCoord a) {
 		return board[a.row][a.col];
+	}
+	
+	ChessPiece getPiece(int r, int c) {
+		return board[r][c];
 	}
 	
 	void play() throws IOException {
@@ -110,11 +115,11 @@ class ChessBoard {
 		for (int r = 8; r >= 1; r--) {
 			System.out.print(r + " ");
 			for (int c = 1; c <= 8; c++) {
-				if (board[r][c].isEmpty())
+				if (getPiece(r,c).isEmpty())
 					System.out.print(" -- ");
 				else {
-					int color = board[r][c].getColor() == BLACK ? 1 : 0;
-					System.out.print(" "+ color + board[r][c]+" ");
+					int color = getPiece(r,c).getColor() == BLACK ? 1 : 0;
+					System.out.print(" "+ color + getPiece(r,c)+" ");
 				}
 			}
 			System.out.print(" " + r);
@@ -127,11 +132,21 @@ class ChessBoard {
 		System.out.println();
 	}
 	
+	boolean lookFor (char n, int r, int c) {
+		// checks if there is a ChessPiece that matches n at coordinate (r, c)
+		if (r < 1 || r > 8 || c < 1 || c > 8)
+			return false;
+		else {
+			return (getPiece(r, c).getName() == n);
+		}
+	}
 	// hasCheck checks whether current player has a check
 	boolean hasCheck() {
 		// look for pawn 1 space diagonally in front
-		
+		// TEMP not sure if this is best way to check if everything is on board. instantiating a new object each time seems wasteful, but making an "onBoard(int r, int c)" seems redundant since there's already a ChessCoord method for similar purpose? 
+		ChessCoord otherKing = activePlayer == WHITE ? blackKing : whiteKing;
 		// look for rook horiz or vert in any direction
+		
 		// look for bishop diag in any direction
 		// look for queen horiz, vert, or diag in any direction
 		// look for king 1 space in any direction
@@ -193,8 +208,8 @@ class ChessBoard {
 				}
 			} else { // if the "to" isn't empty
 				// if it's on your own side, can't make this move
-				if (activePlayer == board[toR][toC].getColor()) return false; // "to" space must be on other side
-				System.out.println(board[toR][toC]+" captured.");
+				if (activePlayer == getPiece(toR,toC).getColor()) return false; // "to" space must be on other side
+				System.out.println(getPiece(toR,toC)+" captured.");
 				getPiece(to).remove();
 				ChessPiece temp = getPiece(to);
 				board[toR][toC] = getPiece(from);
@@ -203,8 +218,8 @@ class ChessBoard {
 			
 			// Promotion
 			// If the pawn reaches a square on the back rank of the opponent, it promotes to the player's choice of a queen, rook, bishop, or knight
-			if (board[toR][toC].getName() == 'P' &&
-					((board[toR][toC].getColor() == WHITE && toR == 8) || (board[toR][toC].getColor() == BLACK && toR == 1))) {
+			if (getPiece(toR,toC).getName() == 'P' &&
+					((getPiece(toR,toC).getColor() == WHITE && toR == 8) || (getPiece(toR,toC).getColor() == BLACK && toR == 1))) {
 				System.out.println("Congratulations! Your pawn has reached the opposite end of the board. Would you like to replace it with a Queen, Rook, Bishop, or Knight?");
 				BufferedReader stream = new BufferedReader(new InputStreamReader(System.in));
 				String s;
@@ -227,7 +242,6 @@ class ChessBoard {
 			return true;
 		} else return false;
 	}
-	
 	
 	class ChessCoord {
 		int row;
@@ -320,7 +334,7 @@ class ChessBoard {
 				// if positive slope
 				int c = Math.min(f.col, t.col) + 1;
 				for (int r = Math.min(f.row,t.row) + 1; r < Math.max(f.row, t.row); r++) {
-					if (!board[r][c].isEmpty()) return false;
+					if (!getPiece(r,c).isEmpty()) return false;
 					c++;
 				}
 				return true;
@@ -328,19 +342,19 @@ class ChessBoard {
 				// if negative slope
 				int c = Math.min(f.col, t.col) + 1;
 				for (int r = Math.max(f.row,t.row) - 1; r > Math.min(f.row, t.row); r--) {
-					if (!board[r][c].isEmpty()) return false;
+					if (!getPiece(r,c).isEmpty()) return false;
 					c++;
 				}
 				return true;
 			} else if (t.row == f.row) {
 				// if going horiz, check for pieces in between
 				for (int c = Math.min(f.col, t.col)+1; c < Math.max(f.col, t.col); c++)
-					if (!board[f.row][c].isEmpty()) return false;
+					if (!getPiece(f.row,c).isEmpty()) return false;
 				return true;
 			} else if (t.col == f.col) {
 				// if going vert, check for pieces in between
 				for (int r = Math.min(f.row, t.row)+1; r < Math.max(f.row, t.row); r++)
-					if (!board[r][f.col].isEmpty()) return false;
+					if (!getPiece(r,f.col).isEmpty()) return false;
 				return true;
 			} else
 				return false;
@@ -368,12 +382,12 @@ class ChessBoard {
 			if (t.row == t.row) {
 				// if going horiz, check for pieces in between
 				for (int c = Math.min(f.col, t.col)+1; c < Math.max(f.col, t.col); c++)
-					if (!board[f.row][c].isEmpty()) return false;
+					if (!getPiece(f.row,c).isEmpty()) return false;
 				return true;
 			} else if (t.col == f.col) {
 				// if going vert, check for pieces in between
 				for (int r = Math.min(f.row, t.row)+1; r < Math.max(f.row, t.row); r++)
-					if (!board[r][f.col].isEmpty()) return false;
+					if (!getPiece(r,f.col).isEmpty()) return false;
 				return true;
 			} else
 				return false;
@@ -389,7 +403,7 @@ class ChessBoard {
 				// if positive slope
 				int c = Math.min(f.col, t.col) + 1;
 				for (int r = Math.min(f.row,t.row) + 1; r < Math.max(f.row, t.row); r++) {
-					if (!board[r][c].isEmpty()) return false;
+					if (!getPiece(r,c).isEmpty()) return false;
 					c++;
 				}
 				return true;
@@ -397,7 +411,7 @@ class ChessBoard {
 				// if negative slope
 				int c = Math.min(f.col, t.col) + 1;
 				for (int r = Math.max(f.row,t.row) - 1; r > Math.min(f.row, t.row); r--) {
-					if (!board[r][c].isEmpty()) return false;
+					if (!getPiece(r,c).isEmpty()) return false;
 					c++;
 				}
 				return true;
