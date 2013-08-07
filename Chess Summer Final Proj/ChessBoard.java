@@ -37,16 +37,15 @@ class ChessBoard {
 	ChessBoard(int port) throws IOException {		
 		// initial printing on Server side only using System.out
 		System.out.println("Simulate a chess game between two players via a computer server");
-		
 		activeColor = WHITE;
 		// set up board and pieces
 		board = new ChessPiece[9][9];
 		board[1][1] = new Rook(WHITE);
 		board[1][2] = new Knight(WHITE);
 		board[1][3] = new Bishop(WHITE);
-		board[1][4] = new King(WHITE);
-		whiteKing = new ChessCoord(1,4);
-		board[1][5] = new Queen(WHITE);
+		board[1][4] = new Queen(WHITE);
+		whiteKing = new ChessCoord(1,5);
+		board[1][5] = new King(WHITE);
 		board[1][6] = new Bishop(WHITE);
 		board[1][7] = new Knight(WHITE);
 		board[1][8] = new Rook(WHITE);
@@ -63,9 +62,9 @@ class ChessBoard {
 		board[8][1] = new Rook(BLACK);
 		board[8][2] = new Knight(BLACK);
 		board[8][3] = new Bishop(BLACK);
-		board[8][4] = new King(BLACK);
-		blackKing = new ChessCoord(8,4);
-		board[8][5] = new Queen(BLACK);
+		board[8][4] = new Queen(BLACK);
+		blackKing = new ChessCoord(8,5);
+		board[8][5] = new King(BLACK);
 		board[8][6] = new Bishop(BLACK);
 		board[8][7] = new Knight(BLACK);
 		board[8][8] = new Rook(BLACK);		
@@ -77,9 +76,10 @@ class ChessBoard {
 			
 			// wait for White
 			whitePlayer = listener.accept();
-			new PlayerHandler(whitePlayer, WHITE).start();
 			// wait for Black
+			showMsgTo(whitePlayer, "Please wait while we find an opponent for you...");
 			blackPlayer = listener.accept();
+			new PlayerHandler(whitePlayer, WHITE).start();
 			new PlayerHandler(blackPlayer, BLACK).start();
 			// start the game
 			listener.close();
@@ -598,7 +598,17 @@ class ChessBoard {
 		}
 		boolean validMove (ChessCoord f, ChessCoord t) {
 			// can go in diagonals or straight lines
-			if ((t.col - f.col)/(t.row - f.row) == 1) {
+			if (t.row == f.row) {
+				// if going horiz, check for pieces in between
+				for (int c = Math.min(f.col, t.col)+1; c < Math.max(f.col, t.col); c++)
+					if (!getPiece(f.row,c).isEmpty()) return false;
+				return true;
+			} else if (t.col == f.col) {
+				// if going vert, check for pieces in between
+				for (int r = Math.min(f.row, t.row)+1; r < Math.max(f.row, t.row); r++)
+					if (!getPiece(r,f.col).isEmpty()) return false;
+				return true;
+			} else if ((t.col - f.col)/(t.row - f.row) == 1) {
 				// if positive slope
 				int c = Math.min(f.col, t.col) + 1;
 				for (int r = Math.min(f.row,t.row) + 1; r < Math.max(f.row, t.row); r++) {
@@ -613,16 +623,6 @@ class ChessBoard {
 					if (!getPiece(r,c).isEmpty()) return false;
 					c++;
 				}
-				return true;
-			} else if (t.row == f.row) {
-				// if going horiz, check for pieces in between
-				for (int c = Math.min(f.col, t.col)+1; c < Math.max(f.col, t.col); c++)
-					if (!getPiece(f.row,c).isEmpty()) return false;
-				return true;
-			} else if (t.col == f.col) {
-				// if going vert, check for pieces in between
-				for (int r = Math.min(f.row, t.row)+1; r < Math.max(f.row, t.row); r++)
-					if (!getPiece(r,f.col).isEmpty()) return false;
 				return true;
 			} else
 				return false;
