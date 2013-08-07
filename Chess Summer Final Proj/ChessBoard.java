@@ -132,7 +132,11 @@ class ChessBoard {
 						// attempt to perform move
 						if (makeMove(move, in, out)) {
 							if (hasCheck())
-								showMsgToBoth("CHECK.");
+								if (hasCheckmate()) {
+									showMsgToBoth(playerName + " has won!");
+									endGame();
+								}
+								else showMsgToBoth("CHECK.");
 						}
 						else {
 							out.println("Invalid move, please try again.");
@@ -227,13 +231,16 @@ class ChessBoard {
 	
 	// hasCheck checks whether current player has a check
 	boolean hasCheck() {
-
 		ChessCoord otherKing = activeColor == WHITE ? blackKing : whiteKing;
-		return otherKing.capturableByAny();
+		return otherKing.capturableByAny(activeColor);
 	}
 	
 	// hasCheck checks whether current player has a checkmate
 	boolean hasCheckmate() {
+		// otherKing can't move anywhere and not be in check
+		// otherKing's potential capturer can't be captured - check for that space's capturableByAny of the opposite color
+		// otherKing's potential capturer's path can't be blocked - check each space in the middle and see if it's reachableByAny of activePlayer's color
+		
 		return false;
 		// TEMP fill with logic for checking for checkmate
 	}
@@ -345,12 +352,12 @@ class ChessBoard {
 			col = c;
 		}
 		
-		boolean reachableByAny() {
+		boolean reachableByAny(int pieceColor) {
 			// returns whether any piece of the active player's color can reach this Chess Coordinate
-			return (reachableBy('P') || reachableBy('N') || reachableBy('K') || reachableBy('R') || reachableBy('B') || reachableBy('Q'));
+			return (reachableBy('P', pieceColor) || reachableBy('N', pieceColor) || reachableBy('K', pieceColor) || reachableBy('R', pieceColor) || reachableBy('B', pieceColor) || reachableBy('Q', pieceColor));
 		}
 		
-		boolean reachableBy(char pieceName) {
+		boolean reachableBy(char pieceName, int pieceColor) {
 			// returns whether the specified piece of the active player's color can reach this Chess Coordinate
 			switch (pieceName) {
 			case 'N':
@@ -358,14 +365,14 @@ class ChessBoard {
 			case 'R':
 			case 'Q':
 			case 'K':
-				return capturableBy(pieceName);
+				return capturableBy(pieceName, pieceColor);
 			case 'P':
-				int inc = activeColor*-1;
+				int inc = pieceColor*-1;
 				// if the piece directly in front is a pawn, return true
-				if (lookFor(row + inc, col, pieceName, activeColor))
+				if (lookFor(row + inc, col, pieceName, pieceColor))
 					return true;
 				// if the piece two forward is a pawn & it hasn't moved yet, return true
-				if (lookFor(row + 2*inc, col, pieceName, activeColor) && !((Pawn) getPiece(row+2*inc, col)).hasMoved)
+				if (lookFor(row + 2*inc, col, pieceName, pieceColor) && !((Pawn) getPiece(row+2*inc, col)).hasMoved)
 					return true;
 				return false;
 			default:
@@ -374,13 +381,13 @@ class ChessBoard {
 			return false;
 		}
 		
-		boolean capturableByAny() {
+		boolean capturableByAny(int pieceColor) {
 			// returns whether any piece of the active player's color can capture something at this Chess Coordinate
 
-			return (capturableBy('P') || capturableBy('N') || capturableBy('K') || capturableBy('R') || capturableBy('B') || capturableBy('Q'));
+			return (capturableBy('P', pieceColor) || capturableBy('N', pieceColor) || capturableBy('K', pieceColor) || capturableBy('R', pieceColor) || capturableBy('B', pieceColor) || capturableBy('Q', pieceColor));
 		}
 		
-		boolean capturableBy(char pieceName) {
+		boolean capturableBy(char pieceName, int pieceColor) {
 			// returns whether the specified piece of the active player's color can capture something at this Chess Coordinate
 
 			// look for pawn 1 space diagonally in front
@@ -388,35 +395,35 @@ class ChessBoard {
 			int r, c;
 			switch (pieceName) {
 			case 'P':
-				int inc = activeColor*-1;
-				if (lookFor(row + inc, col + 1, pieceName, activeColor) ||
-						lookFor(row + inc, col - 1, pieceName, activeColor)) {
+				int inc = pieceColor*-1;
+				if (lookFor(row + inc, col + 1, pieceName, pieceColor) ||
+						lookFor(row + inc, col - 1, pieceName, pieceColor)) {
 					return true;
 				}
 				return false;
 			case 'N':
 				// look for knight an "L" away
-				if (lookFor(row + 2, col + 1, pieceName, activeColor) ||
-						lookFor(row + 1, col + 2, pieceName, activeColor) ||
-						lookFor(row + 2, col - 1, pieceName, activeColor) ||
-						lookFor(row + 1, col - 2, pieceName, activeColor) ||
-						lookFor(row - 2, col + 1, pieceName, activeColor) ||
-						lookFor(row - 1, col + 2, pieceName, activeColor) ||
-						lookFor(row - 2, col - 1, pieceName, activeColor) ||
-						lookFor(row - 1, col - 2, pieceName, activeColor)) {
+				if (lookFor(row + 2, col + 1, pieceName, pieceColor) ||
+						lookFor(row + 1, col + 2, pieceName, pieceColor) ||
+						lookFor(row + 2, col - 1, pieceName, pieceColor) ||
+						lookFor(row + 1, col - 2, pieceName, pieceColor) ||
+						lookFor(row - 2, col + 1, pieceName, pieceColor) ||
+						lookFor(row - 1, col + 2, pieceName, pieceColor) ||
+						lookFor(row - 2, col - 1, pieceName, pieceColor) ||
+						lookFor(row - 1, col - 2, pieceName, pieceColor)) {
 					return true;
 				}
 				return false;
 			case 'K':
 				// look for king 1 space in any direction
-				if (lookFor(row + 1, col + 1, pieceName, activeColor) ||
-						lookFor(row + 1, col - 1, pieceName, activeColor) ||
-						lookFor(row - 1, col + 1, pieceName, activeColor) ||
-						lookFor(row - 1, col - 1, pieceName, activeColor) ||
-						lookFor(row, col + 1, pieceName, activeColor) ||
-						lookFor(row, col - 1, pieceName, activeColor) ||
-						lookFor(row + 1, col, pieceName, activeColor) ||
-						lookFor(row - 1, col, pieceName, activeColor)) {
+				if (lookFor(row + 1, col + 1, pieceName, pieceColor) ||
+						lookFor(row + 1, col - 1, pieceName, pieceColor) ||
+						lookFor(row - 1, col + 1, pieceName, pieceColor) ||
+						lookFor(row - 1, col - 1, pieceName, pieceColor) ||
+						lookFor(row, col + 1, pieceName, pieceColor) ||
+						lookFor(row, col - 1, pieceName, pieceColor) ||
+						lookFor(row + 1, col, pieceName, pieceColor) ||
+						lookFor(row - 1, col, pieceName, pieceColor)) {
 					return true;
 				}
 				return false;
@@ -426,7 +433,7 @@ class ChessBoard {
 				r = row + 1;
 				c = col;
 				while(onBoard(r,c)) {
-					if ((getPiece(r, c).getName() == pieceName) && getPiece(r,c).getColor() == activeColor) return true;
+					if ((getPiece(r, c).getName() == pieceName) && getPiece(r,c).getColor() == pieceColor) return true;
 					// if it's a piece other than a space, then you've encountered some other piece and that path is safe
 					else if (getPiece(r, c).getName() != ' ') break;
 					r++;
@@ -434,7 +441,7 @@ class ChessBoard {
 				// decrease row, col stays same
 				r = row - 1;
 				while(onBoard(r,c)) {
-					if ((getPiece(r, c).getName() == pieceName) && getPiece(r,c).getColor() == activeColor) return true;
+					if ((getPiece(r, c).getName() == pieceName) && getPiece(r,c).getColor() == pieceColor) return true;
 					else if (getPiece(r, c).getName() != ' ') break;
 					r--;
 				}
@@ -442,14 +449,14 @@ class ChessBoard {
 				r = row;
 				c = col + 1;
 				while(onBoard(r,c)) {
-					if ((getPiece(r, c).getName() == pieceName) && getPiece(r,c).getColor() == activeColor) return true;
+					if ((getPiece(r, c).getName() == pieceName) && getPiece(r,c).getColor() == pieceColor) return true;
 					else if (getPiece(r, c).getName() != ' ') break;
 					c++;
 				}
 				// same row, decrease column
 				c = col - 1;
 				while(onBoard(r,c)) {
-					if ((getPiece(r, c).getName() == pieceName) && getPiece(r,c).getColor() == activeColor) return true;
+					if ((getPiece(r, c).getName() == pieceName) && getPiece(r,c).getColor() == pieceColor) return true;
 					else if (getPiece(r, c).getName() != ' ') break;
 					c--;
 				}
@@ -460,7 +467,7 @@ class ChessBoard {
 				r = row+1;
 				c = col+1;
 				while(onBoard(r,c)) {
-					if ((getPiece(r, c).getName() == pieceName) && getPiece(r,c).getColor() == activeColor) return true;
+					if ((getPiece(r, c).getName() == pieceName) && getPiece(r,c).getColor() == pieceColor) return true;
 					else if (getPiece(r, c).getName() != ' ') break;
 					r++;
 					c++;
@@ -469,7 +476,7 @@ class ChessBoard {
 				r = row-1;
 				c = col-1;
 				while(onBoard(r,c)) {
-					if ((getPiece(r, c).getName() == pieceName) && getPiece(r,c).getColor() == activeColor) return true;
+					if ((getPiece(r, c).getName() == pieceName) && getPiece(r,c).getColor() == pieceColor) return true;
 					else if (getPiece(r, c).getName() != ' ') break;
 					r--;
 					c--;
@@ -478,7 +485,7 @@ class ChessBoard {
 				r = row+1;
 				c = col-1;
 				while(onBoard(r,c)) {
-					if ((getPiece(r, c).getName() == pieceName) && getPiece(r,c).getColor() == activeColor) return true;
+					if ((getPiece(r, c).getName() == pieceName) && getPiece(r,c).getColor() == pieceColor) return true;
 					else if (getPiece(r, c).getName() != ' ') break;
 					r++;
 					c--;
@@ -487,7 +494,7 @@ class ChessBoard {
 				r = row-1;
 				c = col+1;
 				while(onBoard(r,c)) {
-					if ((getPiece(r, c).getName() == pieceName) && getPiece(r,c).getColor() == activeColor) return true;
+					if ((getPiece(r, c).getName() == pieceName) && getPiece(r,c).getColor() == pieceColor) return true;
 					else if (getPiece(r, c).getName() != ' ') break;
 					r--;
 					c++;
@@ -499,7 +506,7 @@ class ChessBoard {
 				r = row + 1;
 				c = col;
 				while(onBoard(r,c)) {
-					if ((getPiece(r, c).getName() == pieceName) && getPiece(r,c).getColor() == activeColor) return true;
+					if ((getPiece(r, c).getName() == pieceName) && getPiece(r,c).getColor() == pieceColor) return true;
 					// if it's a piece other than a space, then you've encountered some other piece and that path is safe
 					else if (getPiece(r, c).getName() != ' ') break;
 					r++;
@@ -507,7 +514,7 @@ class ChessBoard {
 				// decrease row, col stays same
 				r = row - 1;
 				while(onBoard(r,c)) {
-					if ((getPiece(r, c).getName() == pieceName) && getPiece(r,c).getColor() == activeColor) return true;
+					if ((getPiece(r, c).getName() == pieceName) && getPiece(r,c).getColor() == pieceColor) return true;
 					else if (getPiece(r, c).getName() != ' ') break;
 					r--;
 				}
@@ -515,14 +522,14 @@ class ChessBoard {
 				r = row;
 				c = col + 1;
 				while(onBoard(r,c)) {
-					if ((getPiece(r, c).getName() == pieceName) && getPiece(r,c).getColor() == activeColor) return true;
+					if ((getPiece(r, c).getName() == pieceName) && getPiece(r,c).getColor() == pieceColor) return true;
 					else if (getPiece(r, c).getName() != ' ') break;
 					c++;
 				}
 				// same row, decrease column
 				c = col - 1;
 				while(onBoard(r,c)) {
-					if ((getPiece(r, c).getName() == pieceName) && getPiece(r,c).getColor() == activeColor) return true;
+					if ((getPiece(r, c).getName() == pieceName) && getPiece(r,c).getColor() == pieceColor) return true;
 					else if (getPiece(r, c).getName() != ' ') break;
 					c--;
 				}
@@ -532,7 +539,7 @@ class ChessBoard {
 				r = row+1;
 				c = col+1;
 				while(onBoard(r,c)) {
-					if ((getPiece(r, c).getName() == pieceName) && getPiece(r,c).getColor() == activeColor) return true;
+					if ((getPiece(r, c).getName() == pieceName) && getPiece(r,c).getColor() == pieceColor) return true;
 					else if (getPiece(r, c).getName() != ' ') break;
 					r++;
 					c++;
@@ -541,7 +548,7 @@ class ChessBoard {
 				r = row-1;
 				c = col-1;
 				while(onBoard(r,c)) {
-					if ((getPiece(r, c).getName() == pieceName) && getPiece(r,c).getColor() == activeColor) return true;
+					if ((getPiece(r, c).getName() == pieceName) && getPiece(r,c).getColor() == pieceColor) return true;
 					else if (getPiece(r, c).getName() != ' ') break;
 					r--;
 					c--;
@@ -550,7 +557,7 @@ class ChessBoard {
 				r = row+1;
 				c = col-1;
 				while(onBoard(r,c)) {
-					if ((getPiece(r, c).getName() == pieceName) && getPiece(r,c).getColor() == activeColor) return true;
+					if ((getPiece(r, c).getName() == pieceName) && getPiece(r,c).getColor() == pieceColor) return true;
 					else if (getPiece(r, c).getName() != ' ') break;
 					r++;
 					c--;
@@ -559,7 +566,7 @@ class ChessBoard {
 				r = row-1;
 				c = col+1;
 				while(onBoard(r,c)) {
-					if ((getPiece(r, c).getName() == pieceName) && getPiece(r,c).getColor() == activeColor) return true;
+					if ((getPiece(r, c).getName() == pieceName) && getPiece(r,c).getColor() == pieceColor) return true;
 					else if (getPiece(r, c).getName() != ' ') break;
 					r--;
 					c++;
