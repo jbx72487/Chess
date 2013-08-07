@@ -23,8 +23,8 @@ class ChessBoard {
 	ChessCoord whiteKing;
 	ChessCoord blackKing;
 	
-	static Socket p1;
-	static Socket p2;
+	static Socket whitePlayer;
+	static Socket blackPlayer;
 		
 	public static void main(String args[]) throws IOException {
 		if (args.length > 0)
@@ -75,13 +75,13 @@ class ChessBoard {
 			ServerSocket listener = new ServerSocket(port);
 			
 			// wait for White
-			p1 = listener.accept();
+			whitePlayer = listener.accept();
 			System.out.println("Player 1 has joined.");
-			new PlayerHandler(p1, WHITE).start();
+			new PlayerHandler(whitePlayer, WHITE).start();
 			// wait for Black
-			p2 = listener.accept();
+			blackPlayer = listener.accept();
 			System.out.println("Player 2 has joined.");
-			new PlayerHandler(p2, BLACK).start();
+			new PlayerHandler(blackPlayer, BLACK).start();
 			listener.close();
 		}
 		catch (IOException e) {
@@ -111,27 +111,33 @@ class ChessBoard {
 				out = new PrintWriter(toPlayer.getOutputStream(), true);
 				out.println("*** Welcome to Chess ***");
 				out.println("Type \"QUIT\" at any time to quit the game.");
-				display();
+				// TEMP need to be able to quit during your game...
+				out.flush();
+				showBoardTo(toPlayer);
 				String move;
+				// TEMP if both players aren't here, then can't keep going!
 				while (true) {
-					out.print(activePlayer == WHITE ? "White" : "Black");
-					out.print(", your turn. What is your move? Please enter in format \"a1 a2\"\n");
-					move = in.readLine().toLowerCase();
-
-					if (move.contains("quit")) break;
-					
-					// attempt to perform move
-					if (makeMove(move, in, out)) {
-						if (hasCheck())
-							ChessBoard.broadcast("CHECK.");
-						display();
-						activePlayer = -1 * activePlayer;
+					if (activePlayer == playerID) {
+						out.print(activePlayer == WHITE ? "White" : "Black");
+						out.print(", your turn. What is your move? Please enter in format \"a1 a2\"\n");
+						out.flush();
+						move = in.readLine().toLowerCase();
+	
+						if (move.contains("quit")) break;
+						
+						// attempt to perform move
+						if (makeMove(move, in, out)) {
+							if (hasCheck())
+								showMsgToAll("CHECK.");
+						}
+						else {
+							out.println("Invalid move, please try again.");
+						}
+						// if check or checkmate, say so
+					} else {
+						out.println("Waiting for "+ (activePlayer == WHITE ? "White" : "Black")+"'s move.");
+						waitForTurn();
 					}
-					else {
-						out.println("Invalid move, please try again.");
-						display();
-					}
-					// if check or checkmate, say so
 				}
 				out.println("Thanks for playing!");
 				toPlayer.close();
@@ -141,12 +147,21 @@ class ChessBoard {
 		}
 	}
 	
-	synchronized static void broadcast(String message) throws IOException {
+	synchronized void waitForTurn() {
+		// if you're not currently the active player, wait for it to be
+		try {
+			wait();
+		} catch (InterruptedException e) {}
+	}
+	
+	synchronized void showMsgToAll(String message) throws IOException {
 		// sends the message to both players
-		PrintWriter p;
-		p = new PrintWriter(p1.getOutputStream(), true);
-		p.println(message);
-		p = new PrintWriter(p2.getOutputStream(), true);
+		showMsgTo(whitePlayer, message);
+		showMsgTo(blackPlayer, message);
+	}
+	
+	synchronized void showMsgTo(Socket s, String message) throws IOException {
+		PrintWriter p = new PrintWriter(s.getOutputStream(), true);
 		p.println(message);
 	}
 	
@@ -158,36 +173,38 @@ class ChessBoard {
 		return board[r][c];
 	}
 	
-	void display() throws IOException {
+	synchronized void showBoardToAll() throws IOException {
+		showBoardTo(whitePlayer);
+		showBoardTo(blackPlayer);
+	}
+	
+	synchronized void showBoardTo(Socket s) throws IOException {
+		PrintWriter p = new PrintWriter(s.getOutputStream(), true);
 		// top row labels
-		PrintWriter p;
-		p = new PrintWriter(p1.getOutputStream(), true);
-		for (int i = 0; i < 2; i++) {
-			p.print("  ");
-			for (int c = (int)('A'); c <= (int) ('H'); c++)
-				p.print("  "+ (char) c +" ");
-			p.println();
-			// actual board
-			for (int r = 8; r >= 1; r--) {
-				p.print(r + " ");
-				for (int c = 1; c <= 8; c++) {
-					if (getPiece(r,c).isEmpty())
-						p.print(" -- ");
-					else {
-						int color = getPiece(r,c).getColor() == BLACK ? 1 : 0;
-						p.print(" "+ color + getPiece(r,c)+" ");
-					}
+		p.println();
+		p.print("  ");
+		for (int c = (int)('A'); c <= (int) ('H'); c++)
+			p.print("  "+ (char) c +" ");
+		p.println();
+		// actual board
+		for (int r = 8; r >= 1; r--) {
+			p.print(r + " ");
+			for (int c = 1; c <= 8; c++) {
+				if (getPiece(r,c).isEmpty())
+					p.print(" -- ");
+				else {
+					int color = getPiece(r,c).getColor() == BLACK ? 1 : 0;
+					p.print(" "+ color + getPiece(r,c)+" ");
 				}
-				p.print(" " + r);
-				p.println();
 			}
-			// bottom row labels
-			p.print("  ");
-			for (int c = (int)('A'); c <= (int) ('H'); c++)
-				p.print("  "+ (char) c +" ");
-			p.println();			
-			p = new PrintWriter(p2.getOutputStream(), true);			
+			p.print(" " + r);
+			p.println();
 		}
+		// bottom row labels
+		p.print("  ");
+		for (int c = (int)('A'); c <= (int) ('H'); c++)
+			p.print("  "+ (char) c +" ");
+		p.println();
 	}
 	
 	boolean onBoard(int r, int c) {
@@ -325,7 +342,7 @@ class ChessBoard {
 	}
 	
 	// makeMove tries to make a move and returns true if move is made or false if not
-	boolean makeMove(String m, BufferedReader in, PrintWriter out) throws IOException {
+	synchronized boolean makeMove(String m, BufferedReader in, PrintWriter out) throws IOException {
 		// parse the strings to get the positions indicated
 		// m is already lowercase by the time it gets here
 		int fromR, fromC, toR, toC;
@@ -367,7 +384,7 @@ class ChessBoard {
 			} else { // if the "to" isn't empty
 				// if it's on your own side, can't make this move
 				if (activePlayer == getPiece(toR,toC).getColor()) return false; // "to" space must be on other side
-				ChessBoard.broadcast(getPiece(toR,toC)+"has been captured.");
+				showMsgToAll(getPiece(toR,toC)+"has been captured.");
 				getPiece(to).remove();
 				ChessPiece temp = getPiece(to);
 				board[toR][toC] = getPiece(from);
@@ -395,7 +412,9 @@ class ChessBoard {
 				case 'N': board[toR][toC] = new Knight(activePlayer); break;
 				}
 			}
-			
+			showBoardToAll();
+			activePlayer = -1 * activePlayer;
+			notifyAll();
 			return true;
 		} else return false;
 	}
@@ -605,7 +624,6 @@ class ChessBoard {
 				return true;
 			else
 				return false;
-			// TEMP need to account for ability to move two in first move
 		}
 	}
 
