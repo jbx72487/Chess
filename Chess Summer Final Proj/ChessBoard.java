@@ -121,7 +121,7 @@ class ChessBoard {
 				while (true) {
 					if (activeColor == playerColor) {
 						out.print(activeColor == WHITE ? "White" : "Black");
-						out.print(", your turn. What is your move? Please enter in format \"a1 a2\"\n");
+						out.print(", your turn. What is your move? Please enter in format \"a1 a2\". To castle, simply move your king to the appropriate position, and the rook will move accordingly.\n");
 						out.flush();
 						move = in.readLine().toLowerCase();
 	
@@ -179,6 +179,11 @@ class ChessBoard {
 	
 	ChessPiece getPiece(int r, int c) {
 		return board[r][c];
+	}
+	
+	void clearPiece(ChessCoord p) {
+		board[p.row][p.col].pieceName = ' ';
+		board[p.row][p.col].color = 0;
 	}
 	
 	synchronized void showBoardToBoth() throws IOException {
@@ -304,46 +309,63 @@ class ChessBoard {
 			// if "to" space is empty, can just switch the "from" and "to"
 			if (getPiece(to).isEmpty()) {
 				swapPieces(from, to);
-				// if pawn that hasn't moved before, mark it as moved
-				if (getPiece(to).getName() == 'P') {
-					Pawn p = (Pawn) getPiece(to);
-					if (!p.hasMoved)
-						p.move();
-				}
-				if (getPiece(to).getName() == 'K') {
-					if (activeColor == WHITE) {
-						whiteKing.setCoord(toR, toC);
-					} else {
-						blackKing.setCoord(toR, toC);
-					}
-				}
+				
 			} else { // if the "to" isn't empty
 				// if it's on your own side, can't make this move
-				if (activeColor == getPiece(toR,toC).getColor()) return false; // "to" space must be on other side
+				if (activeColor == getPiece(toR,toC).getColor()) return false;
+				// if "to" space belongs to the other person, then capture it
 				showMsgToBoth(getPiece(toR,toC)+"has been captured.");
-				getPiece(to).remove();
+				clearPiece(to);
 				swapPieces(from, to);
 			}
 			
+			if (getPiece(to).getName() == 'K') {
+				King k = (King) getPiece(to);
+				if (activeColor == WHITE) {
+					whiteKing.setCoord(toR, toC);
+				} else {
+					blackKing.setCoord(toR, toC);
+				}
+				if (!k.hasMoved) {
+					// if the move was a castle, then move the appropriate castle
+					if (Math.abs(toC - fromC) == 2) {
+						int inc = (toC-fromC)/2;
+						ChessCoord rookFrom = new ChessCoord(fromC, toC + inc * (inc == -1 ? 4 : 3));
+						ChessCoord rookTo = new ChessCoord(fromC, toC + inc);
+						swapPieces(rookFrom, rookTo);
+					}
+					k.move();
+				}
+			}
+			if (getPiece(to).getName() == 'R') {
+				Rook r = (Rook) getPiece(to);
+				if (!r.hasMoved)
+					r.move();
+			}
 			// Promotion
 			// If the pawn reaches a square on the back rank of the opponent, it promotes to the player's choice of a queen, rook, bishop, or knight
-			if (getPiece(toR,toC).getName() == 'P' &&
-					((getPiece(toR,toC).getColor() == WHITE && toR == 8) || (getPiece(toR,toC).getColor() == BLACK && toR == 1))) {
-				out.println("Congratulations! Your pawn has reached the opposite end of the board. Would you like to replace it with a Queen, Rook, Bishop, or Knight?");
-				String s;
-				char choice;
-				while (true) {
-					out.print("Please enter your choice: Q, R, B, or N: ");
-					s = in.readLine();
-					choice = s.toUpperCase().charAt(0);
-					if (choice == 'Q' || choice == 'R' || choice == 'B' || choice == 'N')
-						break;
-				}
-				switch (choice) {
-				case 'Q': board[toR][toC] = new Queen(activeColor); break;
-				case 'R': board[toR][toC] = new Rook(activeColor); break;
-				case 'B': board[toR][toC] = new Bishop(activeColor); break;
-				case 'N': board[toR][toC] = new Knight(activeColor); break;
+			if (getPiece(toR,toC).getName() == 'P') {
+				// if pawn that hasn't moved before, mark it as moved
+				Pawn p = (Pawn) getPiece(to);
+				if (!p.hasMoved)
+					p.move();
+				if ((getPiece(toR,toC).getColor() == WHITE && toR == 8) || (getPiece(toR,toC).getColor() == BLACK && toR == 1)) {
+					out.println("Congratulations! Your pawn has reached the opposite end of the board. Would you like to replace it with a Queen, Rook, Bishop, or Knight?");
+					String s;
+					char choice;
+					while (true) {
+						out.print("Please enter your choice: Q, R, B, or N: ");
+						s = in.readLine();
+						choice = s.toUpperCase().charAt(0);
+						if (choice == 'Q' || choice == 'R' || choice == 'B' || choice == 'N')
+							break;
+					}
+					switch (choice) {
+					case 'Q': board[toR][toC] = new Queen(activeColor); break;
+					case 'R': board[toR][toC] = new Rook(activeColor); break;
+					case 'B': board[toR][toC] = new Bishop(activeColor); break;
+					case 'N': board[toR][toC] = new Knight(activeColor); break;
+					}
 				}
 			}
 			showBoardToBoth();
@@ -545,6 +567,7 @@ class ChessBoard {
 		ChessPiece () {
 			// if empty, set pieceName to be null
 			pieceName = ' ';
+			color = 0;
 		}
 		
 		// toString for printing board
@@ -573,15 +596,17 @@ class ChessBoard {
 			return color;
 		}
 		
-		void remove() {
-			pieceName = ' ';
-		}
 	}
 	
 	class King extends ChessPiece {
+		boolean hasMoved;
 		King(int c) {
 			pieceName = 'K';
+			hasMoved = false;
 			color = c;
+		}
+		void move() {
+			hasMoved = true;
 		}
 		// king can move exactly one vacant square in any direction
 		boolean validMove (ChessCoord f, ChessCoord t) {
@@ -589,8 +614,18 @@ class ChessBoard {
 					(Math.abs(f.row - t.row) == 1 && Math.abs(f.col - t.col) == 1))
 				return true;
 			else
+				// check for castling
+				if (hasMoved == false && // king hasn't moved before
+				Math.abs(f.row - t.row) == 0 && Math.abs(f.col - t.col) == 2 && // trying to move exactly two spaces left/right
+				getPiece(t.row, t.col).pieceName == ' ') { // trying to move to a blank space 
+					int inc = (t.col - f.col)/2;
+					if (getPiece(f.row, f.col+inc).pieceName != ' ') return false; // space that rook will go to must be empty
+					if (inc == -1) if (getPiece(f.row, f.col+3*inc).pieceName != ' ') return false; // if queenside rook, one more space must be empty
+					if (getPiece(f.row, f.col+ (inc == -1 ? 4 : 3)*inc).pieceName != 'R') return false; // if corresponding piece isn't a rook, can't castle
+					if (((Rook) getPiece(f.row, f.col+ (inc == -1 ? 4 : 3)*inc)).hasMoved == true) return false; // if corresponding rook has moved, can't castle
+					return true;
+				}
 				return false;
-			// TEMP add possibility of castling
 		} 
 	}
 	class Queen extends ChessPiece {
@@ -644,10 +679,16 @@ class ChessBoard {
 		}
 	}
 	class Rook extends ChessPiece {
+		boolean hasMoved;
 		Rook(int c) {
 			pieceName = 'R';
+			hasMoved = false;
 			color = c;
 		}
+		void move() {
+			hasMoved = true;
+		}
+		
 		boolean validMove (ChessCoord f, ChessCoord t) {
 			if (t.row == t.row) {
 				// if going horiz, check for pieces in between
