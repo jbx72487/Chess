@@ -1,4 +1,6 @@
 import java.io.*;
+import java.net.InetAddress;
+import java.net.*;
 
 /* Chess Board
  * 
@@ -12,6 +14,8 @@ class ChessBoard {
 	static final int WHITE = 1;
 	static final int BLACK = -1;
 	
+	static int port = 8190;
+	
 	// board holds pointers to all the ChessPiece objects
 	ChessPiece board[][];
 	
@@ -19,21 +23,21 @@ class ChessBoard {
 	ChessCoord whiteKing;
 	ChessCoord blackKing;
 	
-	BufferedReader inStream;
-	PrintWriter outStream;
-	
+	static Socket p1;
+	static Socket p2;
 		
 	public static void main(String args[]) throws IOException {
-		new ChessBoard();
+		if (args.length > 0)
+			port = Integer.parseInt(args[0]);
+		new ChessBoard(port);
 		// get move input
 	}
 	
-	ChessBoard() throws IOException {
+	ChessBoard(int port) throws IOException {		
+		// initial printing on Server side only using System.out
+		System.out.println("Simulate a chess game between two players via a computer server");
+		
 		activePlayer = WHITE;
-		
-		inStream = new BufferedReader(new InputStreamReader(System.in));
-		outStream = new PrintWriter(System.out, true);
-		
 		// set up board and pieces
 		board = new ChessPiece[9][9];
 		board[1][1] = new Rook(WHITE);
@@ -64,10 +68,87 @@ class ChessBoard {
 		board[8][6] = new Bishop(BLACK);
 		board[8][7] = new Knight(BLACK);
 		board[8][8] = new Rook(BLACK);		
+
 		// play chess!
-		play();
+		// set up the server socket
+		try {
+			ServerSocket listener = new ServerSocket(port);
+			
+			// wait for White
+			p1 = listener.accept();
+			System.out.println("Player 1 has joined.");
+			new PlayerHandler(p1, WHITE).start();
+			// wait for Black
+			p2 = listener.accept();
+			System.out.println("Player 2 has joined.");
+			new PlayerHandler(p2, BLACK).start();
+			listener.close();
+		}
+		catch (IOException e) {
+			System.out.println("Port "+port+" may be busy. Try another");
+		}
+		
 	}
 	
+	class PlayerHandler extends Thread {
+		private BufferedReader in;
+		private PrintWriter out;
+		private Socket toPlayer;
+		private int playerID;
+		
+		
+		PlayerHandler(Socket s, int i) {
+			// remember the client socket number and client ID number
+			toPlayer = s;
+			playerID = i;
+		}
+		
+		public void run() {
+			try {
+				// create i-o streams through the socket we were given when the thread was instantiated and welcome the new client
+				
+				in = new BufferedReader(new InputStreamReader (toPlayer.getInputStream()));
+				out = new PrintWriter(toPlayer.getOutputStream(), true);
+				out.println("*** Welcome to Chess ***");
+				out.println("Type \"QUIT\" at any time to quit the game.");
+				display();
+				String move;
+				while (true) {
+					out.print(activePlayer == WHITE ? "White" : "Black");
+					out.print(", your turn. What is your move? Please enter in format \"a1 a2\"\n");
+					move = in.readLine().toLowerCase();
+
+					if (move.contains("quit")) break;
+					
+					// attempt to perform move
+					if (makeMove(move, in, out)) {
+						if (hasCheck())
+							ChessBoard.broadcast("CHECK.");
+						display();
+						activePlayer = -1 * activePlayer;
+					}
+					else {
+						out.println("Invalid move, please try again.");
+						display();
+					}
+					// if check or checkmate, say so
+				}
+				out.println("Thanks for playing!");
+				toPlayer.close();
+			} catch (Exception e) {
+				System.out.println("Error: "+e);
+			}
+		}
+	}
+	
+	synchronized static void broadcast(String message) throws IOException {
+		// sends the message to both players
+		PrintWriter p;
+		p = new PrintWriter(p1.getOutputStream(), true);
+		p.println(message);
+		p = new PrintWriter(p2.getOutputStream(), true);
+		p.println(message);
+	}
 	
 	ChessPiece getPiece(ChessCoord a) {
 		return board[a.row][a.col];
@@ -77,61 +158,36 @@ class ChessBoard {
 		return board[r][c];
 	}
 	
-	void play() throws IOException {
-		outStream.println("Welcome to Chess. Type \"QUIT\" at any time to quit the game.");
-		display();
-		String move;
-		while (true) {
-			move = getMove(inStream);
-			if (move.contains("quit")) break;
-			
-			// attempt to perform move
-			if (makeMove(move)) {
-				if (hasCheck())
-					outStream.println("CHECK.");
-				display();
-				activePlayer = -1 * activePlayer;
-			}
-			else {
-				outStream.println("Invalid move, please try again.");
-				display();
-			}
-			// if check or checkmate, say so
-		}
-		outStream.println("Thanks for playing!");
-	}
-	
-	String getMove(BufferedReader inStream) throws IOException {
-		outStream.print(activePlayer == WHITE ? "White" : "Black");
-		outStream.print(", your turn. What is your move? Please enter in format \"a1 a2\"\n");
-		return inStream.readLine().toLowerCase();
-	}
-	
-	void display() {
+	void display() throws IOException {
 		// top row labels
-		outStream.print("  ");
-		for (int c = (int)('A'); c <= (int) ('H'); c++)
-			outStream.print("  "+ (char) c +" ");
-		outStream.println();
-		// actual board
-		for (int r = 8; r >= 1; r--) {
-			outStream.print(r + " ");
-			for (int c = 1; c <= 8; c++) {
-				if (getPiece(r,c).isEmpty())
-					outStream.print(" -- ");
-				else {
-					int color = getPiece(r,c).getColor() == BLACK ? 1 : 0;
-					outStream.print(" "+ color + getPiece(r,c)+" ");
+		PrintWriter p;
+		p = new PrintWriter(p1.getOutputStream(), true);
+		for (int i = 0; i < 2; i++) {
+			p.print("  ");
+			for (int c = (int)('A'); c <= (int) ('H'); c++)
+				p.print("  "+ (char) c +" ");
+			p.println();
+			// actual board
+			for (int r = 8; r >= 1; r--) {
+				p.print(r + " ");
+				for (int c = 1; c <= 8; c++) {
+					if (getPiece(r,c).isEmpty())
+						p.print(" -- ");
+					else {
+						int color = getPiece(r,c).getColor() == BLACK ? 1 : 0;
+						p.print(" "+ color + getPiece(r,c)+" ");
+					}
 				}
+				p.print(" " + r);
+				p.println();
 			}
-			outStream.print(" " + r);
-			outStream.println();
+			// bottom row labels
+			p.print("  ");
+			for (int c = (int)('A'); c <= (int) ('H'); c++)
+				p.print("  "+ (char) c +" ");
+			p.println();			
+			p = new PrintWriter(p2.getOutputStream(), true);			
 		}
-		// bottom row labels
-		outStream.print("  ");
-		for (int c = (int)('A'); c <= (int) ('H'); c++)
-			outStream.print("  "+ (char) c +" ");
-		outStream.println();
 	}
 	
 	boolean onBoard(int r, int c) {
@@ -269,7 +325,7 @@ class ChessBoard {
 	}
 	
 	// makeMove tries to make a move and returns true if move is made or false if not
-	boolean makeMove(String m) throws IOException {
+	boolean makeMove(String m, BufferedReader in, PrintWriter out) throws IOException {
 		// parse the strings to get the positions indicated
 		// m is already lowercase by the time it gets here
 		int fromR, fromC, toR, toC;
@@ -285,8 +341,6 @@ class ChessBoard {
 		ChessCoord to = new ChessCoord(toR, toC);
 		
 		
-		// TEMP this output is for testing only
-		outStream.println("Move from ("+fromR+", "+fromC+") to ("+toR+", "+toC+").");
 		if (from.isOnBoard() && to.isOnBoard() && // both "from" and "to" spaces must be on the gameboard
 				getPiece(from).getColor() == activePlayer &&// can only move your own piece
 				!getPiece(from).isEmpty() && // "from" space must be occupied
@@ -313,7 +367,7 @@ class ChessBoard {
 			} else { // if the "to" isn't empty
 				// if it's on your own side, can't make this move
 				if (activePlayer == getPiece(toR,toC).getColor()) return false; // "to" space must be on other side
-				outStream.println(getPiece(toR,toC)+" captured.");
+				ChessBoard.broadcast(getPiece(toR,toC)+"has been captured.");
 				getPiece(to).remove();
 				ChessPiece temp = getPiece(to);
 				board[toR][toC] = getPiece(from);
@@ -324,12 +378,12 @@ class ChessBoard {
 			// If the pawn reaches a square on the back rank of the opponent, it promotes to the player's choice of a queen, rook, bishop, or knight
 			if (getPiece(toR,toC).getName() == 'P' &&
 					((getPiece(toR,toC).getColor() == WHITE && toR == 8) || (getPiece(toR,toC).getColor() == BLACK && toR == 1))) {
-				outStream.println("Congratulations! Your pawn has reached the opposite end of the board. Would you like to replace it with a Queen, Rook, Bishop, or Knight?");
+				out.println("Congratulations! Your pawn has reached the opposite end of the board. Would you like to replace it with a Queen, Rook, Bishop, or Knight?");
 				String s;
 				char choice;
 				while (true) {
-					outStream.print("Please enter your choice: Q, R, B, or N: ");
-					s = inStream.readLine();
+					out.print("Please enter your choice: Q, R, B, or N: ");
+					s = in.readLine();
 					choice = s.toUpperCase().charAt(0);
 					if (choice == 'Q' || choice == 'R' || choice == 'B' || choice == 'N')
 						break;
@@ -367,6 +421,14 @@ class ChessBoard {
 		void change(int r, int c) {
 			row = r;
 			col = c;
+		}
+		
+		boolean reachableBy(char pieceName) {
+			return false;
+		}
+		
+		boolean capturableBy(char pieceName) {
+			return false;
 		}
 	}
 	
