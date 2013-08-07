@@ -129,7 +129,9 @@ class ChessBoard {
 						out.print(activeColor == WHITE ? "White" : "Black");
 						out.print(", your turn. What is your move? Please enter in format \"a1 a2\".\n");
 						out.flush();
+						try {
 						move = in.readLine().toLowerCase();
+						// TEMP for testing & verifying moves
 						System.out.println(move);
 	
 						if (move.contains("quit")) {
@@ -147,9 +149,14 @@ class ChessBoard {
 								showMsgToBoth("CHECK.");
 						}
 						else {
+							// TEMP for debugging
+							System.out.println("Invalid move, please try again.");
 							out.println("Invalid move, please try again.");
 						}
 						// if check or checkmate, say so
+						// TEMP for debugging
+						}
+						catch (EOFException e) {}
 					} else {
 						out.println("Waiting for "+ (activeColor == WHITE ? "White" : "Black")+"'s move.");
 						waitForTurn();
@@ -334,11 +341,11 @@ class ChessBoard {
 					blackKing.setCoord(toR, toC);
 				}
 				if (!k.hasMoved) {
-					// if the move was a castle, then move the appropriate castle
+					// if the move was a castle, then move the appropriate rook
 					if (Math.abs(toC - fromC) == 2) {
 						int inc = (toC-fromC)/2;
-						ChessCoord rookFrom = new ChessCoord(fromC, toC + inc * (inc == -1 ? 4 : 3));
-						ChessCoord rookTo = new ChessCoord(fromC, toC + inc);
+						ChessCoord rookFrom = new ChessCoord(fromR, fromC + inc * (inc == -1 ? 4 : 3));
+						ChessCoord rookTo = new ChessCoord(fromR, fromC + inc);
 						swapPieces(rookFrom, rookTo);
 					}
 					k.move();

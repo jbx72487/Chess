@@ -16,3 +16,5 @@
 /ChessBoard$Rook.class
 /ChessBoard$Player.class
 /ChessBoard$PlayerHandler.class
+/ChessBoard$ChessCoord$PieceCoord.class
+/ChessBoard$PieceCoord.class
