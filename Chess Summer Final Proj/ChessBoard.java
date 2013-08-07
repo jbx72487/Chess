@@ -303,9 +303,7 @@ class ChessBoard {
 				getPiece(from).validMove(from, to)) { // must be valid move based on that gamepiece
 			// if "to" space is empty, can just switch the "from" and "to"
 			if (getPiece(to).isEmpty()) {
-				ChessPiece temp = getPiece(to);
-				board[toR][toC] = getPiece(from);
-				board[fromR][fromC] = temp;
+				swapPieces(from, to);
 				// if pawn that hasn't moved before, mark it as moved
 				if (getPiece(to).getName() == 'P') {
 					Pawn p = (Pawn) getPiece(to);
@@ -324,9 +322,7 @@ class ChessBoard {
 				if (activeColor == getPiece(toR,toC).getColor()) return false; // "to" space must be on other side
 				showMsgToBoth(getPiece(toR,toC)+"has been captured.");
 				getPiece(to).remove();
-				ChessPiece temp = getPiece(to);
-				board[toR][toC] = getPiece(from);
-				board[fromR][fromC] = temp;
+				swapPieces(from, to);
 			}
 			
 			// Promotion
@@ -355,6 +351,12 @@ class ChessBoard {
 			notifyAll();
 			return true;
 		} else return false;
+	}
+	
+	void swapPieces(ChessCoord from, ChessCoord to) {
+		ChessPiece temp = getPiece(to);
+		board[to.row][to.col] = getPiece(from);
+		board[from.row][from.col] = temp;
 	}
 	
 	void endGame() throws IOException {
