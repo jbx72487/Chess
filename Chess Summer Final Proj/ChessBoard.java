@@ -111,8 +111,14 @@ class ChessBoard {
 				out.println("What is your name?");
 				playerName = in.readLine().trim();
 				
+				// TEMP input from file
+				if (playerColor == 1)
+					in = new BufferedReader(new FileReader("player1.txt"));
+				else
+					in = new BufferedReader(new FileReader("player2.txt"));
+				
 				out.println("*** Welcome to Chess, "+playerName+" ***");
-				out.println("Type \"QUIT\" at any time to quit the game.");
+				out.println("To castle, simply move your king to the appropriate position, and the rook will move accordingly. Type \"QUIT\" at any time to quit the game.");
 				// TEMP need to be able to quit during your game...
 				out.flush();
 				showBoardTo(toPlayer);
@@ -121,9 +127,10 @@ class ChessBoard {
 				while (true) {
 					if (activeColor == playerColor) {
 						out.print(activeColor == WHITE ? "White" : "Black");
-						out.print(", your turn. What is your move? Please enter in format \"a1 a2\". To castle, simply move your king to the appropriate position, and the rook will move accordingly.\n");
+						out.print(", your turn. What is your move? Please enter in format \"a1 a2\".\n");
 						out.flush();
 						move = in.readLine().toLowerCase();
+						System.out.println(move);
 	
 						if (move.contains("quit")) {
 							showMsgToBoth(playerName + " has quit the game");
@@ -314,7 +321,7 @@ class ChessBoard {
 				// if it's on your own side, can't make this move
 				if (activeColor == getPiece(toR,toC).getColor()) return false;
 				// if "to" space belongs to the other person, then capture it
-				showMsgToBoth(getPiece(toR,toC)+"has been captured.");
+				showMsgToBoth(getPiece(toR,toC)+" has been captured.");
 				clearPiece(to);
 				swapPieces(from, to);
 			}
