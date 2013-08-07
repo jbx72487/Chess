@@ -25,7 +25,7 @@ class ChessBoard {
 	
 	private static Socket whitePlayer;
 	private static Socket blackPlayer;
-		
+			
 	public static void main(String args[]) throws IOException {
 		if (args.length > 0)
 			port = Integer.parseInt(args[0]);
@@ -80,6 +80,7 @@ class ChessBoard {
 			// wait for Black
 			blackPlayer = listener.accept();
 			new PlayerHandler(blackPlayer, BLACK).start();
+			// start the game
 			listener.close();
 		}
 		catch (IOException e) {
@@ -228,113 +229,7 @@ class ChessBoard {
 	boolean hasCheck() {
 
 		ChessCoord otherKing = activeColor == WHITE ? blackKing : whiteKing;
-		
-		int r = otherKing.row;
-		int c = otherKing.col;
-		
-		// look for pawn 1 space diagonally in front
-		// increment (+/- 1) depends on which player is active (which direction player faces)
-		int inc = activeColor*-1;
-		if (lookFor(r + inc, c + 1, 'P', activeColor) ||
-				lookFor(r + inc, c - 1, 'P', activeColor)) {
-			return true;
-		}
-		
-		// look for knight an "L" away
-		if (lookFor(r + 2, c + 1, 'N', activeColor) ||
-				lookFor(r + 1, c + 2, 'N', activeColor) ||
-				lookFor(r + 2, c - 1, 'N', activeColor) ||
-				lookFor(r + 1, c - 2, 'N', activeColor) ||
-				lookFor(r - 2, c + 1, 'N', activeColor) ||
-				lookFor(r - 1, c + 2, 'N', activeColor) ||
-				lookFor(r - 2, c - 1, 'N', activeColor) ||
-				lookFor(r - 1, c - 2, 'N', activeColor)) {
-			return true;
-		}
-		
-		// look for king 1 space in any direction
-		if (lookFor(r + 1, c + 1, 'K', activeColor) ||
-				lookFor(r + 1, c - 1, 'K', activeColor) ||
-				lookFor(r - 1, c + 1, 'K', activeColor) ||
-				lookFor(r - 1, c - 1, 'K', activeColor) ||
-				lookFor(r, c + 1, 'K', activeColor) ||
-				lookFor(r, c - 1, 'K', activeColor) ||
-				lookFor(r + 1, c, 'K', activeColor) ||
-				lookFor(r - 1, c, 'K', activeColor)) {
-			return true;
-		}
-		
-		// look for rook or queen horiz or vert in any direction
-		// increase row, col stays same
-		r = otherKing.row + 1;
-		while(onBoard(r,c)) {
-			if ((getPiece(r, c).getName() == 'R' || getPiece(r, c).getName() == 'Q') && getPiece(r,c).getColor() == activeColor) return true;
-			// if it's a piece other than a space, then you've encountered some other piece and that path is safe
-			else if (getPiece(r, c).getName() != ' ') break;
-			r++;
-		}
-		// decrease row, col stays same
-		r = otherKing.row - 1;
-		while(onBoard(r,c)) {
-			if ((getPiece(r, c).getName() == 'R' || getPiece(r, c).getName() == 'Q') && getPiece(r,c).getColor() == activeColor) return true;
-			else if (getPiece(r, c).getName() != ' ') break;
-			r--;
-		}
-		// same row, increase column
-		r = otherKing.row;
-		c = otherKing.col + 1;
-		while(onBoard(r,c)) {
-			if ((getPiece(r, c).getName() == 'R' || getPiece(r, c).getName() == 'Q') && getPiece(r,c).getColor() == activeColor) return true;
-			else if (getPiece(r, c).getName() != ' ') break;
-			c++;
-		}
-		// same row, decrease column
-		c = otherKing.col - 1;
-		while(onBoard(r,c)) {
-			if ((getPiece(r, c).getName() == 'R' || getPiece(r, c).getName() == 'Q') && getPiece(r,c).getColor() == activeColor) return true;
-			else if (getPiece(r, c).getName() != ' ') break;
-			c--;
-		}
-		
-		// look for bishop or queen diag in any direction
-		// increase row, increase col
-		r = otherKing.row+1;
-		c = otherKing.col+1;
-		while(onBoard(r,c)) {
-			if ((getPiece(r, c).getName() == 'B' || getPiece(r, c).getName() == 'Q') && getPiece(r,c).getColor() == activeColor) return true;
-			else if (getPiece(r, c).getName() != ' ') break;
-			r++;
-			c++;
-		}
-		// increase row, increase col
-		r = otherKing.row-1;
-		c = otherKing.col-1;
-		while(onBoard(r,c)) {
-			if ((getPiece(r, c).getName() == 'B' || getPiece(r, c).getName() == 'Q') && getPiece(r,c).getColor() == activeColor) return true;
-			else if (getPiece(r, c).getName() != ' ') break;
-			r--;
-			c--;
-		}
-		// increase row, increase col
-		r = otherKing.row+1;
-		c = otherKing.col-1;
-		while(onBoard(r,c)) {
-			if ((getPiece(r, c).getName() == 'B' || getPiece(r, c).getName() == 'Q') && getPiece(r,c).getColor() == activeColor) return true;
-			else if (getPiece(r, c).getName() != ' ') break;
-			r++;
-			c--;
-		}
-		// increase row, increase col
-		r = otherKing.row-1;
-		c = otherKing.col+1;
-		while(onBoard(r,c)) {
-			if ((getPiece(r, c).getName() == 'B' || getPiece(r, c).getName() == 'Q') && getPiece(r,c).getColor() == activeColor) return true;
-			else if (getPiece(r, c).getName() != ' ') break;
-			r--;
-			c++;
-		}
-		
-		return false;
+		return otherKing.capturableByAny();
 	}
 	
 	// hasCheck checks whether current player has a checkmate
@@ -450,11 +345,229 @@ class ChessBoard {
 			col = c;
 		}
 		
+		boolean reachableByAny() {
+			// returns whether any piece of the active player's color can reach this Chess Coordinate
+			return (reachableBy('P') || reachableBy('N') || reachableBy('K') || reachableBy('R') || reachableBy('B') || reachableBy('Q'));
+		}
+		
 		boolean reachableBy(char pieceName) {
+			// returns whether the specified piece of the active player's color can reach this Chess Coordinate
+			switch (pieceName) {
+			case 'N':
+			case 'B':
+			case 'R':
+			case 'Q':
+			case 'K':
+				return capturableBy(pieceName);
+			case 'P':
+				int inc = activeColor*-1;
+				// if the piece directly in front is a pawn, return true
+				if (lookFor(row + inc, col, pieceName, activeColor))
+					return true;
+				// if the piece two forward is a pawn & it hasn't moved yet, return true
+				if (lookFor(row + 2*inc, col, pieceName, activeColor) && !((Pawn) getPiece(row+2*inc, col)).hasMoved)
+					return true;
+				return false;
+			default:
+				System.out.println("ERROR: Tried to look for a reachableBy piece that isn't a real chess piece.");
+			}
 			return false;
 		}
 		
+		boolean capturableByAny() {
+			// returns whether any piece of the active player's color can capture something at this Chess Coordinate
+
+			return (capturableBy('P') || capturableBy('N') || capturableBy('K') || capturableBy('R') || capturableBy('B') || capturableBy('Q'));
+		}
+		
 		boolean capturableBy(char pieceName) {
+			// returns whether the specified piece of the active player's color can capture something at this Chess Coordinate
+
+			// look for pawn 1 space diagonally in front
+			// increment (+/- 1) depends on which player is active (which direction player faces)
+			int r, c;
+			switch (pieceName) {
+			case 'P':
+				int inc = activeColor*-1;
+				if (lookFor(row + inc, col + 1, pieceName, activeColor) ||
+						lookFor(row + inc, col - 1, pieceName, activeColor)) {
+					return true;
+				}
+				return false;
+			case 'N':
+				// look for knight an "L" away
+				if (lookFor(row + 2, col + 1, pieceName, activeColor) ||
+						lookFor(row + 1, col + 2, pieceName, activeColor) ||
+						lookFor(row + 2, col - 1, pieceName, activeColor) ||
+						lookFor(row + 1, col - 2, pieceName, activeColor) ||
+						lookFor(row - 2, col + 1, pieceName, activeColor) ||
+						lookFor(row - 1, col + 2, pieceName, activeColor) ||
+						lookFor(row - 2, col - 1, pieceName, activeColor) ||
+						lookFor(row - 1, col - 2, pieceName, activeColor)) {
+					return true;
+				}
+				return false;
+			case 'K':
+				// look for king 1 space in any direction
+				if (lookFor(row + 1, col + 1, pieceName, activeColor) ||
+						lookFor(row + 1, col - 1, pieceName, activeColor) ||
+						lookFor(row - 1, col + 1, pieceName, activeColor) ||
+						lookFor(row - 1, col - 1, pieceName, activeColor) ||
+						lookFor(row, col + 1, pieceName, activeColor) ||
+						lookFor(row, col - 1, pieceName, activeColor) ||
+						lookFor(row + 1, col, pieceName, activeColor) ||
+						lookFor(row - 1, col, pieceName, activeColor)) {
+					return true;
+				}
+				return false;
+			case 'R':
+				// look for rook horiz or vert in any direction
+				// increase row, col stays same
+				r = row + 1;
+				c = col;
+				while(onBoard(r,c)) {
+					if ((getPiece(r, c).getName() == pieceName) && getPiece(r,c).getColor() == activeColor) return true;
+					// if it's a piece other than a space, then you've encountered some other piece and that path is safe
+					else if (getPiece(r, c).getName() != ' ') break;
+					r++;
+				}
+				// decrease row, col stays same
+				r = row - 1;
+				while(onBoard(r,c)) {
+					if ((getPiece(r, c).getName() == pieceName) && getPiece(r,c).getColor() == activeColor) return true;
+					else if (getPiece(r, c).getName() != ' ') break;
+					r--;
+				}
+				// same row, increase column
+				r = row;
+				c = col + 1;
+				while(onBoard(r,c)) {
+					if ((getPiece(r, c).getName() == pieceName) && getPiece(r,c).getColor() == activeColor) return true;
+					else if (getPiece(r, c).getName() != ' ') break;
+					c++;
+				}
+				// same row, decrease column
+				c = col - 1;
+				while(onBoard(r,c)) {
+					if ((getPiece(r, c).getName() == pieceName) && getPiece(r,c).getColor() == activeColor) return true;
+					else if (getPiece(r, c).getName() != ' ') break;
+					c--;
+				}
+				return false;
+			case 'B':
+				// look for bishop diag in any direction
+				// increase row, increase col
+				r = row+1;
+				c = col+1;
+				while(onBoard(r,c)) {
+					if ((getPiece(r, c).getName() == pieceName) && getPiece(r,c).getColor() == activeColor) return true;
+					else if (getPiece(r, c).getName() != ' ') break;
+					r++;
+					c++;
+				}
+				// increase row, increase col
+				r = row-1;
+				c = col-1;
+				while(onBoard(r,c)) {
+					if ((getPiece(r, c).getName() == pieceName) && getPiece(r,c).getColor() == activeColor) return true;
+					else if (getPiece(r, c).getName() != ' ') break;
+					r--;
+					c--;
+				}
+				// increase row, increase col
+				r = row+1;
+				c = col-1;
+				while(onBoard(r,c)) {
+					if ((getPiece(r, c).getName() == pieceName) && getPiece(r,c).getColor() == activeColor) return true;
+					else if (getPiece(r, c).getName() != ' ') break;
+					r++;
+					c--;
+				}
+				// increase row, increase col
+				r = row-1;
+				c = col+1;
+				while(onBoard(r,c)) {
+					if ((getPiece(r, c).getName() == pieceName) && getPiece(r,c).getColor() == activeColor) return true;
+					else if (getPiece(r, c).getName() != ' ') break;
+					r--;
+					c++;
+				}
+				return false;
+			case 'Q':
+				// look for queen horiz or vert in any direction
+				// increase row, col stays same
+				r = row + 1;
+				c = col;
+				while(onBoard(r,c)) {
+					if ((getPiece(r, c).getName() == pieceName) && getPiece(r,c).getColor() == activeColor) return true;
+					// if it's a piece other than a space, then you've encountered some other piece and that path is safe
+					else if (getPiece(r, c).getName() != ' ') break;
+					r++;
+				}
+				// decrease row, col stays same
+				r = row - 1;
+				while(onBoard(r,c)) {
+					if ((getPiece(r, c).getName() == pieceName) && getPiece(r,c).getColor() == activeColor) return true;
+					else if (getPiece(r, c).getName() != ' ') break;
+					r--;
+				}
+				// same row, increase column
+				r = row;
+				c = col + 1;
+				while(onBoard(r,c)) {
+					if ((getPiece(r, c).getName() == pieceName) && getPiece(r,c).getColor() == activeColor) return true;
+					else if (getPiece(r, c).getName() != ' ') break;
+					c++;
+				}
+				// same row, decrease column
+				c = col - 1;
+				while(onBoard(r,c)) {
+					if ((getPiece(r, c).getName() == pieceName) && getPiece(r,c).getColor() == activeColor) return true;
+					else if (getPiece(r, c).getName() != ' ') break;
+					c--;
+				}
+				
+				// look for queen diag in any direction
+				// increase row, increase col
+				r = row+1;
+				c = col+1;
+				while(onBoard(r,c)) {
+					if ((getPiece(r, c).getName() == pieceName) && getPiece(r,c).getColor() == activeColor) return true;
+					else if (getPiece(r, c).getName() != ' ') break;
+					r++;
+					c++;
+				}
+				// increase row, increase col
+				r = row-1;
+				c = col-1;
+				while(onBoard(r,c)) {
+					if ((getPiece(r, c).getName() == pieceName) && getPiece(r,c).getColor() == activeColor) return true;
+					else if (getPiece(r, c).getName() != ' ') break;
+					r--;
+					c--;
+				}
+				// increase row, increase col
+				r = row+1;
+				c = col-1;
+				while(onBoard(r,c)) {
+					if ((getPiece(r, c).getName() == pieceName) && getPiece(r,c).getColor() == activeColor) return true;
+					else if (getPiece(r, c).getName() != ' ') break;
+					r++;
+					c--;
+				}
+				// increase row, increase col
+				r = row-1;
+				c = col+1;
+				while(onBoard(r,c)) {
+					if ((getPiece(r, c).getName() == pieceName) && getPiece(r,c).getColor() == activeColor) return true;
+					else if (getPiece(r, c).getName() != ' ') break;
+					r--;
+					c++;
+				}
+				return false;
+			default:
+				System.out.println("ERROR: Tried to look for a capturableBy piece that isn't a real chess piece.");
+			}
 			return false;
 		}
 	}
