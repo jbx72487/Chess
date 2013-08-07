@@ -8,8 +8,8 @@ import java.net.*;
  */
 
 class ChessBoard {
-	// activePlayer shows who is playing
-	int activePlayer;
+	// activeColor shows who is playing
+	private int activeColor;
 	// constants WHITE and BLACK represent two players
 	static final int WHITE = 1;
 	static final int BLACK = -1;
@@ -17,14 +17,14 @@ class ChessBoard {
 	static int port = 8190;
 	
 	// board holds pointers to all the ChessPiece objects
-	ChessPiece board[][];
+	private ChessPiece board[][];
 	
 	// coordinates of two kings
-	ChessCoord whiteKing;
-	ChessCoord blackKing;
+	private ChessCoord whiteKing;
+	private ChessCoord blackKing;
 	
-	static Socket whitePlayer;
-	static Socket blackPlayer;
+	private static Socket whitePlayer;
+	private static Socket blackPlayer;
 		
 	public static void main(String args[]) throws IOException {
 		if (args.length > 0)
@@ -37,7 +37,7 @@ class ChessBoard {
 		// initial printing on Server side only using System.out
 		System.out.println("Simulate a chess game between two players via a computer server");
 		
-		activePlayer = WHITE;
+		activeColor = WHITE;
 		// set up board and pieces
 		board = new ChessPiece[9][9];
 		board[1][1] = new Rook(WHITE);
@@ -76,11 +76,9 @@ class ChessBoard {
 			
 			// wait for White
 			whitePlayer = listener.accept();
-			System.out.println("Player 1 has joined.");
 			new PlayerHandler(whitePlayer, WHITE).start();
 			// wait for Black
 			blackPlayer = listener.accept();
-			System.out.println("Player 2 has joined.");
 			new PlayerHandler(blackPlayer, BLACK).start();
 			listener.close();
 		}
@@ -91,25 +89,27 @@ class ChessBoard {
 	}
 	
 	class PlayerHandler extends Thread {
-		private BufferedReader in;
-		private PrintWriter out;
+		private String playerName;
 		private Socket toPlayer;
-		private int playerID;
+		private int playerColor;
+
 		
 		
 		PlayerHandler(Socket s, int i) {
 			// remember the client socket number and client ID number
 			toPlayer = s;
-			playerID = i;
+			playerColor = i;
 		}
 		
 		public void run() {
 			try {
 				// create i-o streams through the socket we were given when the thread was instantiated and welcome the new client
+				BufferedReader in = new BufferedReader(new InputStreamReader (toPlayer.getInputStream()));
+				PrintWriter out = new PrintWriter(toPlayer.getOutputStream(), true);
+				out.println("What is your name?");
+				playerName = in.readLine().trim();
 				
-				in = new BufferedReader(new InputStreamReader (toPlayer.getInputStream()));
-				out = new PrintWriter(toPlayer.getOutputStream(), true);
-				out.println("*** Welcome to Chess ***");
+				out.println("*** Welcome to Chess, "+playerName+" ***");
 				out.println("Type \"QUIT\" at any time to quit the game.");
 				// TEMP need to be able to quit during your game...
 				out.flush();
@@ -117,30 +117,32 @@ class ChessBoard {
 				String move;
 				// TEMP if both players aren't here, then can't keep going!
 				while (true) {
-					if (activePlayer == playerID) {
-						out.print(activePlayer == WHITE ? "White" : "Black");
+					if (activeColor == playerColor) {
+						out.print(activeColor == WHITE ? "White" : "Black");
 						out.print(", your turn. What is your move? Please enter in format \"a1 a2\"\n");
 						out.flush();
 						move = in.readLine().toLowerCase();
 	
-						if (move.contains("quit")) break;
+						if (move.contains("quit")) {
+							showMsgToBoth(playerName + " has quit the game");
+							break;
+						}
 						
 						// attempt to perform move
 						if (makeMove(move, in, out)) {
 							if (hasCheck())
-								showMsgToAll("CHECK.");
+								showMsgToBoth("CHECK.");
 						}
 						else {
 							out.println("Invalid move, please try again.");
 						}
 						// if check or checkmate, say so
 					} else {
-						out.println("Waiting for "+ (activePlayer == WHITE ? "White" : "Black")+"'s move.");
+						out.println("Waiting for "+ (activeColor == WHITE ? "White" : "Black")+"'s move.");
 						waitForTurn();
 					}
 				}
-				out.println("Thanks for playing!");
-				toPlayer.close();
+				endGame();
 			} catch (Exception e) {
 				System.out.println("Error: "+e);
 			}
@@ -154,7 +156,7 @@ class ChessBoard {
 		} catch (InterruptedException e) {}
 	}
 	
-	synchronized void showMsgToAll(String message) throws IOException {
+	synchronized void showMsgToBoth(String message) throws IOException {
 		// sends the message to both players
 		showMsgTo(whitePlayer, message);
 		showMsgTo(blackPlayer, message);
@@ -173,7 +175,7 @@ class ChessBoard {
 		return board[r][c];
 	}
 	
-	synchronized void showBoardToAll() throws IOException {
+	synchronized void showBoardToBoth() throws IOException {
 		showBoardTo(whitePlayer);
 		showBoardTo(blackPlayer);
 	}
@@ -225,40 +227,40 @@ class ChessBoard {
 	// hasCheck checks whether current player has a check
 	boolean hasCheck() {
 
-		ChessCoord otherKing = activePlayer == WHITE ? blackKing : whiteKing;
+		ChessCoord otherKing = activeColor == WHITE ? blackKing : whiteKing;
 		
 		int r = otherKing.row;
 		int c = otherKing.col;
 		
 		// look for pawn 1 space diagonally in front
 		// increment (+/- 1) depends on which player is active (which direction player faces)
-		int inc = activePlayer*-1;
-		if (lookFor(r + inc, c + 1, 'P', activePlayer) ||
-				lookFor(r + inc, c - 1, 'P', activePlayer)) {
+		int inc = activeColor*-1;
+		if (lookFor(r + inc, c + 1, 'P', activeColor) ||
+				lookFor(r + inc, c - 1, 'P', activeColor)) {
 			return true;
 		}
 		
 		// look for knight an "L" away
-		if (lookFor(r + 2, c + 1, 'N', activePlayer) ||
-				lookFor(r + 1, c + 2, 'N', activePlayer) ||
-				lookFor(r + 2, c - 1, 'N', activePlayer) ||
-				lookFor(r + 1, c - 2, 'N', activePlayer) ||
-				lookFor(r - 2, c + 1, 'N', activePlayer) ||
-				lookFor(r - 1, c + 2, 'N', activePlayer) ||
-				lookFor(r - 2, c - 1, 'N', activePlayer) ||
-				lookFor(r - 1, c - 2, 'N', activePlayer)) {
+		if (lookFor(r + 2, c + 1, 'N', activeColor) ||
+				lookFor(r + 1, c + 2, 'N', activeColor) ||
+				lookFor(r + 2, c - 1, 'N', activeColor) ||
+				lookFor(r + 1, c - 2, 'N', activeColor) ||
+				lookFor(r - 2, c + 1, 'N', activeColor) ||
+				lookFor(r - 1, c + 2, 'N', activeColor) ||
+				lookFor(r - 2, c - 1, 'N', activeColor) ||
+				lookFor(r - 1, c - 2, 'N', activeColor)) {
 			return true;
 		}
 		
 		// look for king 1 space in any direction
-		if (lookFor(r + 1, c + 1, 'K', activePlayer) ||
-				lookFor(r + 1, c - 1, 'K', activePlayer) ||
-				lookFor(r - 1, c + 1, 'K', activePlayer) ||
-				lookFor(r - 1, c - 1, 'K', activePlayer) ||
-				lookFor(r, c + 1, 'K', activePlayer) ||
-				lookFor(r, c - 1, 'K', activePlayer) ||
-				lookFor(r + 1, c, 'K', activePlayer) ||
-				lookFor(r - 1, c, 'K', activePlayer)) {
+		if (lookFor(r + 1, c + 1, 'K', activeColor) ||
+				lookFor(r + 1, c - 1, 'K', activeColor) ||
+				lookFor(r - 1, c + 1, 'K', activeColor) ||
+				lookFor(r - 1, c - 1, 'K', activeColor) ||
+				lookFor(r, c + 1, 'K', activeColor) ||
+				lookFor(r, c - 1, 'K', activeColor) ||
+				lookFor(r + 1, c, 'K', activeColor) ||
+				lookFor(r - 1, c, 'K', activeColor)) {
 			return true;
 		}
 		
@@ -266,7 +268,7 @@ class ChessBoard {
 		// increase row, col stays same
 		r = otherKing.row + 1;
 		while(onBoard(r,c)) {
-			if ((getPiece(r, c).getName() == 'R' || getPiece(r, c).getName() == 'Q') && getPiece(r,c).getColor() == activePlayer) return true;
+			if ((getPiece(r, c).getName() == 'R' || getPiece(r, c).getName() == 'Q') && getPiece(r,c).getColor() == activeColor) return true;
 			// if it's a piece other than a space, then you've encountered some other piece and that path is safe
 			else if (getPiece(r, c).getName() != ' ') break;
 			r++;
@@ -274,7 +276,7 @@ class ChessBoard {
 		// decrease row, col stays same
 		r = otherKing.row - 1;
 		while(onBoard(r,c)) {
-			if ((getPiece(r, c).getName() == 'R' || getPiece(r, c).getName() == 'Q') && getPiece(r,c).getColor() == activePlayer) return true;
+			if ((getPiece(r, c).getName() == 'R' || getPiece(r, c).getName() == 'Q') && getPiece(r,c).getColor() == activeColor) return true;
 			else if (getPiece(r, c).getName() != ' ') break;
 			r--;
 		}
@@ -282,14 +284,14 @@ class ChessBoard {
 		r = otherKing.row;
 		c = otherKing.col + 1;
 		while(onBoard(r,c)) {
-			if ((getPiece(r, c).getName() == 'R' || getPiece(r, c).getName() == 'Q') && getPiece(r,c).getColor() == activePlayer) return true;
+			if ((getPiece(r, c).getName() == 'R' || getPiece(r, c).getName() == 'Q') && getPiece(r,c).getColor() == activeColor) return true;
 			else if (getPiece(r, c).getName() != ' ') break;
 			c++;
 		}
 		// same row, decrease column
 		c = otherKing.col - 1;
 		while(onBoard(r,c)) {
-			if ((getPiece(r, c).getName() == 'R' || getPiece(r, c).getName() == 'Q') && getPiece(r,c).getColor() == activePlayer) return true;
+			if ((getPiece(r, c).getName() == 'R' || getPiece(r, c).getName() == 'Q') && getPiece(r,c).getColor() == activeColor) return true;
 			else if (getPiece(r, c).getName() != ' ') break;
 			c--;
 		}
@@ -299,7 +301,7 @@ class ChessBoard {
 		r = otherKing.row+1;
 		c = otherKing.col+1;
 		while(onBoard(r,c)) {
-			if ((getPiece(r, c).getName() == 'B' || getPiece(r, c).getName() == 'Q') && getPiece(r,c).getColor() == activePlayer) return true;
+			if ((getPiece(r, c).getName() == 'B' || getPiece(r, c).getName() == 'Q') && getPiece(r,c).getColor() == activeColor) return true;
 			else if (getPiece(r, c).getName() != ' ') break;
 			r++;
 			c++;
@@ -308,7 +310,7 @@ class ChessBoard {
 		r = otherKing.row-1;
 		c = otherKing.col-1;
 		while(onBoard(r,c)) {
-			if ((getPiece(r, c).getName() == 'B' || getPiece(r, c).getName() == 'Q') && getPiece(r,c).getColor() == activePlayer) return true;
+			if ((getPiece(r, c).getName() == 'B' || getPiece(r, c).getName() == 'Q') && getPiece(r,c).getColor() == activeColor) return true;
 			else if (getPiece(r, c).getName() != ' ') break;
 			r--;
 			c--;
@@ -317,7 +319,7 @@ class ChessBoard {
 		r = otherKing.row+1;
 		c = otherKing.col-1;
 		while(onBoard(r,c)) {
-			if ((getPiece(r, c).getName() == 'B' || getPiece(r, c).getName() == 'Q') && getPiece(r,c).getColor() == activePlayer) return true;
+			if ((getPiece(r, c).getName() == 'B' || getPiece(r, c).getName() == 'Q') && getPiece(r,c).getColor() == activeColor) return true;
 			else if (getPiece(r, c).getName() != ' ') break;
 			r++;
 			c--;
@@ -326,7 +328,7 @@ class ChessBoard {
 		r = otherKing.row-1;
 		c = otherKing.col+1;
 		while(onBoard(r,c)) {
-			if ((getPiece(r, c).getName() == 'B' || getPiece(r, c).getName() == 'Q') && getPiece(r,c).getColor() == activePlayer) return true;
+			if ((getPiece(r, c).getName() == 'B' || getPiece(r, c).getName() == 'Q') && getPiece(r,c).getColor() == activeColor) return true;
 			else if (getPiece(r, c).getName() != ' ') break;
 			r--;
 			c++;
@@ -359,7 +361,7 @@ class ChessBoard {
 		
 		
 		if (from.isOnBoard() && to.isOnBoard() && // both "from" and "to" spaces must be on the gameboard
-				getPiece(from).getColor() == activePlayer &&// can only move your own piece
+				getPiece(from).getColor() == activeColor &&// can only move your own piece
 				!getPiece(from).isEmpty() && // "from" space must be occupied
 				!(from.isEqual(to)) && // "from" and "to" can't be the same space
 				getPiece(from).validMove(from, to)) { // must be valid move based on that gamepiece
@@ -375,16 +377,16 @@ class ChessBoard {
 						p.move();
 				}
 				if (getPiece(to).getName() == 'K') {
-					if (activePlayer == WHITE) {
-						whiteKing.change(toR, toC);
+					if (activeColor == WHITE) {
+						whiteKing.setCoord(toR, toC);
 					} else {
-						blackKing.change(toR, toC);
+						blackKing.setCoord(toR, toC);
 					}
 				}
 			} else { // if the "to" isn't empty
 				// if it's on your own side, can't make this move
-				if (activePlayer == getPiece(toR,toC).getColor()) return false; // "to" space must be on other side
-				showMsgToAll(getPiece(toR,toC)+"has been captured.");
+				if (activeColor == getPiece(toR,toC).getColor()) return false; // "to" space must be on other side
+				showMsgToBoth(getPiece(toR,toC)+"has been captured.");
 				getPiece(to).remove();
 				ChessPiece temp = getPiece(to);
 				board[toR][toC] = getPiece(from);
@@ -406,20 +408,26 @@ class ChessBoard {
 						break;
 				}
 				switch (choice) {
-				case 'Q': board[toR][toC] = new Queen(activePlayer); break;
-				case 'R': board[toR][toC] = new Rook(activePlayer); break;
-				case 'B': board[toR][toC] = new Bishop(activePlayer); break;
-				case 'N': board[toR][toC] = new Knight(activePlayer); break;
+				case 'Q': board[toR][toC] = new Queen(activeColor); break;
+				case 'R': board[toR][toC] = new Rook(activeColor); break;
+				case 'B': board[toR][toC] = new Bishop(activeColor); break;
+				case 'N': board[toR][toC] = new Knight(activeColor); break;
 				}
 			}
-			showBoardToAll();
-			activePlayer = -1 * activePlayer;
+			showBoardToBoth();
+			activeColor = -1 * activeColor;
 			notifyAll();
 			return true;
 		} else return false;
 	}
 	
-	class ChessCoord {
+	void endGame() throws IOException {
+		showMsgToBoth("Thanks for playing!");
+		whitePlayer.close();
+		blackPlayer.close();
+	}
+	
+	public class ChessCoord {
 		int row;
 		int col;
 		
@@ -437,7 +445,7 @@ class ChessBoard {
 			return (row == a.row && col == a.col);
 		}
 		
-		void change(int r, int c) {
+		void setCoord(int r, int c) {
 			row = r;
 			col = c;
 		}
