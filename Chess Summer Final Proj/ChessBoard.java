@@ -19,6 +19,7 @@ class ChessBoard {
 	
 	// board holds pointers to all the ChessPiece objects
 	private ChessPiece board[][];
+	private int activePlayers;
 	
 	// coordinates of two kings
 	private ChessCoord whiteKing;
@@ -38,6 +39,7 @@ class ChessBoard {
 		// initial printing on Server side only using System.out
 		System.out.println("Simulate a chess game between two players via a computer server");
 		activeColor = WHITE;
+		activePlayers = 0;
 		// set up board and pieces
 		board = new ChessPiece[9][9];
 		board[1][1] = new Rook(WHITE);
@@ -76,12 +78,12 @@ class ChessBoard {
 			
 			// wait for White
 			whitePlayer = listener.accept();
+			
 			// wait for Black
-			showMsgTo(whitePlayer, "Please wait while we find an opponent for you...");
 			blackPlayer = listener.accept();
 			new PlayerHandler(whitePlayer, WHITE).start();
 			new PlayerHandler(blackPlayer, BLACK).start();
-			// start the game
+			// close the game
 			listener.close();
 		}
 		catch (IOException e) {
@@ -111,55 +113,52 @@ class ChessBoard {
 				out.println("What is your name?");
 				playerName = in.readLine().trim();
 				
-				// TEMP input from file
+				// TEMP for testing purposes, input from file
 				if (playerColor == 1)
 					in = new BufferedReader(new FileReader("player1.txt"));
 				else
 					in = new BufferedReader(new FileReader("player2.txt"));
-				
 				out.println("*** Welcome to Chess, "+playerName+" ***");
+				
+				waitForTwoPlayers();
+				
 				out.println("To castle, simply move your king to the appropriate position, and the rook will move accordingly. Type \"QUIT\" at any time to quit the game.");
-				// TEMP need to be able to quit during your game...
 				out.flush();
 				showBoardTo(toPlayer);
 				String move;
-				// TEMP if both players aren't here, then can't keep going!
+				// TEMP if both players aren't here, then can't start yet!
 				while (true) {
 					if (activeColor == playerColor) {
 						out.print(activeColor == WHITE ? "White" : "Black");
 						out.print(", your turn. What is your move? Please enter in format \"a1 a2\".\n");
 						out.flush();
 						try {
-						move = in.readLine().toLowerCase();
-						// TEMP for testing & verifying moves
-						System.out.println(move);
-	
-						if (move.contains("quit")) {
-							showMsgToBoth(playerName + " has quit the game");
-							break;
-						}
-						
-						// attempt to perform move
-						if (makeMove(move, in, out)) {
-							showBoardToBoth();
-							showMsgToBoth("\n\n");
-							int status = hasWinningCondition();
-							if (status == 2) {
-								showMsgToBoth(playerName + " has won!");
-								showMsgTo((activeColor == WHITE ? whitePlayer : blackPlayer), "CONGRATULATIONS!!");
-								endGame();
-							} else if (status == 1)
-								showMsgToBoth("CHECK.");
-							activeColor = -1 * activeColor;
-							nextTurn();
-						}
-						else {
-							// TEMP for debugging
-							System.out.println("Invalid move, please try again.");
-							out.println("Invalid move, please try again.");
-						}
-						// if check or checkmate, say so
-						// TEMP for debugging
+							move = in.readLine().toLowerCase();
+							// TEMP for testing & verifying moves
+							System.out.println(move);
+		
+							if (move.contains("quit")) {
+								showMsgToBoth(playerName + " has quit the game");
+								break;
+							}
+							
+							// attempt to perform move
+							if (makeMove(move, in, out)) {
+								showBoardToBoth();
+								showMsgToBoth("\n\n");
+								int status = hasWinningCondition();
+								if (status == 2) {
+									showMsgToBoth(playerName + " has won!");
+									showMsgTo((activeColor == WHITE ? whitePlayer : blackPlayer), "CONGRATULATIONS!!");
+									endGame();
+								} else if (status == 1)
+									showMsgToBoth("CHECK.");
+								activeColor = -1 * activeColor;
+								nextTurn();
+							}
+							else {
+								out.println("Invalid move, please try again.");
+							}
 						}
 						catch (EOFException e) {}
 					} else {
@@ -172,6 +171,19 @@ class ChessBoard {
 				System.out.println("Error: "+e);
 			}
 		}
+	}
+	
+	synchronized void waitForTwoPlayers() {
+		activePlayers ++;
+		if (activePlayers == 1)
+			try {
+				wait();
+			} catch (InterruptedException e) {}
+		else if (activePlayers == 2) {
+			notifyAll();
+		}
+		else
+			System.out.println("ERROR: miscounting active players.");
 	}
 	
 	synchronized void waitForTurn() {
@@ -283,11 +295,6 @@ class ChessBoard {
 		for (ListIterator list = captors.listIterator(); list.hasNext();) {
 			// Check 2: Removability - if the capturer's space is capturable by a piece of the opposite color that isn't the king that we're trying to get, then move on to next capturer because is removable
 			cap = (PieceCoord) list.next();
-			// TEMP for debugging
-			/* ChessCoord temp = new ChessCoord(cap.row, cap.col);
-			if (temp.capturableByAny(activeColor * -1))
-				continue;
-				*/
 			
 			LinkedList capCaptors = (new ChessCoord(cap.row, cap.col)).getCaptorList(activeColor * -1);
 			for (ListIterator list2 = capCaptors.listIterator(); list2.hasNext(); ) {
