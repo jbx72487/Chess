@@ -146,6 +146,7 @@ class ChessBoard {
 							int status = hasWinningCondition();
 							if (status == 2) {
 								showMsgToBoth(playerName + " has won!");
+								showMsgTo((activeColor == WHITE ? whitePlayer : blackPlayer), "CONGRATULATIONS!!");
 								endGame();
 							} else if (status == 1)
 								showMsgToBoth("CHECK.");
@@ -272,20 +273,28 @@ class ChessBoard {
 		if (lookFor(otherKing.row+1,otherKing.col-1,' ',0) && (new ChessCoord(otherKing.row+1,otherKing.col-1)).capturableByAny(activeColor) == false) return 1;
 		if (lookFor(otherKing.row+1,otherKing.col,' ',0) && (new ChessCoord(otherKing.row+1,otherKing.col)).capturableByAny(activeColor) == false) return 1;
 		if (lookFor(otherKing.row+1,otherKing.col+1,' ',0) && (new ChessCoord(otherKing.row+1,otherKing.col+1)).capturableByAny(activeColor) == false) return 1;
-		if (lookFor(otherKing.row,otherKing.col,' ',0) && (new ChessCoord(otherKing.row,otherKing.col-1)).capturableByAny(activeColor) == false) return 1;
-		if (lookFor(otherKing.row,otherKing.col,' ',0) && (new ChessCoord(otherKing.row,otherKing.col+1)).capturableByAny(activeColor) == false) return 1;
+		if (lookFor(otherKing.row,otherKing.col-1,' ',0) && (new ChessCoord(otherKing.row,otherKing.col-1)).capturableByAny(activeColor) == false) return 1;
+		if (lookFor(otherKing.row,otherKing.col+1,' ',0) && (new ChessCoord(otherKing.row,otherKing.col+1)).capturableByAny(activeColor) == false) return 1;
 		if (lookFor(otherKing.row-1,otherKing.col-1,' ',0) && (new ChessCoord(otherKing.row-1,otherKing.col-1)).capturableByAny(activeColor) == false) return 1;
 		if (lookFor(otherKing.row-1,otherKing.col,' ',0) && (new ChessCoord(otherKing.row-1,otherKing.col)).capturableByAny(activeColor) == false) return 1;
 		if (lookFor(otherKing.row-1,otherKing.col+1,' ',0) && (new ChessCoord(otherKing.row-1,otherKing.col+1)).capturableByAny(activeColor) == false) return 1;
 		// otherwise loop through capturers because is unavoidable
-		PieceCoord cap;
+		PieceCoord cap, capCaptor;
 		for (ListIterator list = captors.listIterator(); list.hasNext();) {
-			// Check 2: Removability - if the capturer's space is capturableByAny of the opposite color, then move on to next capturer because is removable
+			// Check 2: Removability - if the capturer's space is capturable by a piece of the opposite color that isn't the king that we're trying to get, then move on to next capturer because is removable
 			cap = (PieceCoord) list.next();
 			// TEMP for debugging
-			ChessCoord temp = new ChessCoord(cap.row, cap.col);
+			/* ChessCoord temp = new ChessCoord(cap.row, cap.col);
 			if (temp.capturableByAny(activeColor * -1))
 				continue;
+				*/
+			
+			LinkedList capCaptors = (new ChessCoord(cap.row, cap.col)).getCaptorList(activeColor * -1);
+			for (ListIterator list2 = capCaptors.listIterator(); list2.hasNext(); ) {
+				capCaptor = (PieceCoord) list2.next();
+				if (capCaptor.pieceName != 'K') continue;
+			}
+			
 			// Check 3: Blockability - check if the path between otherKing and the captor can be blocked
 			// if the captor is a 'N' or 'P' return 2 because of an unremovable, unblockable captor (since knight & pawn can't be blocked)
 			if (getPiece(cap.row, cap.col).getName() == 'N' || getPiece(cap.row, cap.col).getName() == 'P') return 2;
@@ -295,13 +304,13 @@ class ChessBoard {
 			int r = otherKing.row + incR;
 			int c = otherKing.col + incC;
 			while (r != cap.row & c != cap.col) {
-				// if space is reachableByAny of the opposite color, then move on to next capturer because is blockable
-				if ((new ChessCoord(r, c)).reachableByAny(activeColor * -1))
+				// if space is reachableByAnyButKing of the opposite color, then move on to next capturer because is blockable
+				if ((new ChessCoord(r, c)).reachableByAnyButKing(activeColor * -1))
 					break; 
 				r += incR;
 				c += incC;
 			}
-			 // if get to end and nothing was reachableByAny, return 2 because of an unremovable, unblockable captor;
+			 // if get to end and nothing was reachableByAnyButKing, return 2 because of an unremovable, unblockable captor;
 			return 2;
 		}
 		// if get to end of capturers and haven't returned anything, return 1 because there is a captor but it was removable;
@@ -446,14 +455,14 @@ class ChessBoard {
 			col = c;
 		}
 		
-		boolean reachableByAny(int pieceColor) {
+		boolean reachableByAnyButKing(int pieceColor) {
 			// returns whether any piece of the active player's color can reach this Chess Coordinate
 			LinkedList captors = getCaptorList(pieceColor);
 			PieceCoord cap;
 			// loop through for any non-pawn pieces, in which case return true
 			for (ListIterator list = captors.listIterator(); list.hasNext(); ) {
 				cap = (PieceCoord) list.next();
-				if (cap.pieceName != 'P') return true;
+				if (cap.pieceName != 'P' && cap.pieceName != 'K') return true;
 			}
 			// check for pawn
 			int inc = pieceColor*-1;
