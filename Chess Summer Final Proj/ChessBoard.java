@@ -141,12 +141,16 @@ class ChessBoard {
 						
 						// attempt to perform move
 						if (makeMove(move, in, out)) {
+							showBoardToBoth();
+							showMsgToBoth("\n\n");
 							int status = hasWinningCondition();
 							if (status == 2) {
 								showMsgToBoth(playerName + " has won!");
 								endGame();
 							} else if (status == 1)
 								showMsgToBoth("CHECK.");
+							activeColor = -1 * activeColor;
+							nextTurn();
 						}
 						else {
 							// TEMP for debugging
@@ -176,6 +180,10 @@ class ChessBoard {
 		} catch (InterruptedException e) {}
 	}
 	
+	synchronized void nextTurn() {
+		notifyAll();
+	}
+	
 	synchronized void showMsgToBoth(String message) throws IOException {
 		// sends the message to both players
 		showMsgTo(whitePlayer, message);
@@ -195,7 +203,7 @@ class ChessBoard {
 		return board[r][c];
 	}
 	
-	void clearPiece(ChessCoord p) {
+	synchronized void clearPiece(ChessCoord p) {
 		board[p.row][p.col].pieceName = ' ';
 		board[p.row][p.col].color = 0;
 	}
@@ -244,9 +252,11 @@ class ChessBoard {
 		// checks if there is a ChessPiece that matches n at coordinate (r, c)r!onBoard(r, c))
 		if (!onBoard(r, c))	
 			return false;
-		else {
+		else if (n == ' ')
+			// if checking for a blank piece, color doesn't matter
+			return (getPiece(r, c).getName() == n);
+		else
 			return (getPiece(r, c).getName() == n && getPiece(r,c).getColor() == p);
-		}
 	}
 	
 	
@@ -259,20 +269,22 @@ class ChessBoard {
 		if (captors.isEmpty())
 			return 0;
 		// Check 1: Avoidability - if the otherKing has a blank space around him that a NOT capturableByAny, then return 1 because is avoidable;
-		if (getPiece(otherKing.row+1,otherKing.col-1).getName()==' ' && (new ChessCoord(otherKing.row+1,otherKing.col-1)).capturableByAny(activeColor) == false) return 1;
-		if (getPiece(otherKing.row+1,otherKing.col).getName()==' ' && (new ChessCoord(otherKing.row+1,otherKing.col)).capturableByAny(activeColor) == false) return 1;
-		if (getPiece(otherKing.row+1,otherKing.col+1).getName()==' ' && (new ChessCoord(otherKing.row+1,otherKing.col+1)).capturableByAny(activeColor) == false) return 1;
-		if (getPiece(otherKing.row,otherKing.col).getName()==' ' && (new ChessCoord(otherKing.row,otherKing.col-1)).capturableByAny(activeColor) == false) return 1;
-		if (getPiece(otherKing.row,otherKing.col).getName()==' ' && (new ChessCoord(otherKing.row,otherKing.col+1)).capturableByAny(activeColor) == false) return 1;
-		if (getPiece(otherKing.row-1,otherKing.col-1).getName()==' ' && (new ChessCoord(otherKing.row-1,otherKing.col-1)).capturableByAny(activeColor) == false) return 1;
-		if (getPiece(otherKing.row-1,otherKing.col).getName()==' ' && (new ChessCoord(otherKing.row-1,otherKing.col)).capturableByAny(activeColor) == false) return 1;
-		if (getPiece(otherKing.row-1,otherKing.col+1).getName()==' ' && (new ChessCoord(otherKing.row-1,otherKing.col+1)).capturableByAny(activeColor) == false) return 1;
+		if (lookFor(otherKing.row+1,otherKing.col-1,' ',0) && (new ChessCoord(otherKing.row+1,otherKing.col-1)).capturableByAny(activeColor) == false) return 1;
+		if (lookFor(otherKing.row+1,otherKing.col,' ',0) && (new ChessCoord(otherKing.row+1,otherKing.col)).capturableByAny(activeColor) == false) return 1;
+		if (lookFor(otherKing.row+1,otherKing.col+1,' ',0) && (new ChessCoord(otherKing.row+1,otherKing.col+1)).capturableByAny(activeColor) == false) return 1;
+		if (lookFor(otherKing.row,otherKing.col,' ',0) && (new ChessCoord(otherKing.row,otherKing.col-1)).capturableByAny(activeColor) == false) return 1;
+		if (lookFor(otherKing.row,otherKing.col,' ',0) && (new ChessCoord(otherKing.row,otherKing.col+1)).capturableByAny(activeColor) == false) return 1;
+		if (lookFor(otherKing.row-1,otherKing.col-1,' ',0) && (new ChessCoord(otherKing.row-1,otherKing.col-1)).capturableByAny(activeColor) == false) return 1;
+		if (lookFor(otherKing.row-1,otherKing.col,' ',0) && (new ChessCoord(otherKing.row-1,otherKing.col)).capturableByAny(activeColor) == false) return 1;
+		if (lookFor(otherKing.row-1,otherKing.col+1,' ',0) && (new ChessCoord(otherKing.row-1,otherKing.col+1)).capturableByAny(activeColor) == false) return 1;
 		// otherwise loop through capturers because is unavoidable
 		PieceCoord cap;
 		for (ListIterator list = captors.listIterator(); list.hasNext();) {
 			// Check 2: Removability - if the capturer's space is capturableByAny of the opposite color, then move on to next capturer because is removable
 			cap = (PieceCoord) list.next();
-			if ((new ChessCoord(cap.row, cap.col)).capturableByAny(activeColor * -1))
+			// TEMP for debugging
+			ChessCoord temp = new ChessCoord(cap.row, cap.col);
+			if (temp.capturableByAny(activeColor * -1))
 				continue;
 			// Check 3: Blockability - check if the path between otherKing and the captor can be blocked
 			// if the captor is a 'N' or 'P' return 2 because of an unremovable, unblockable captor (since knight & pawn can't be blocked)
@@ -358,7 +370,7 @@ class ChessBoard {
 			}
 			// Promotion
 			// If the pawn reaches a square on the back rank of the opponent, it promotes to the player's choice of a queen, rook, bishop, or knight
-			if (getPiece(toR,toC).getName() == 'P') {
+			if (getPiece(to).getName() == 'P') {
 				// if pawn that hasn't moved before, mark it as moved
 				Pawn p = (Pawn) getPiece(to);
 				if (!p.hasMoved)
@@ -382,14 +394,12 @@ class ChessBoard {
 					}
 				}
 			}
-			showBoardToBoth();
-			activeColor = -1 * activeColor;
-			notifyAll();
+			showMsgToBoth((activeColor == WHITE ? "White" : "Black") +" moves " + getPiece(to).getName()+" from "+m.substring(0,2)+" to "+m.substring(3,5)+".");
 			return true;
 		} else return false;
 	}
 	
-	void swapPieces(ChessCoord from, ChessCoord to) {
+	synchronized void swapPieces(ChessCoord from, ChessCoord to) {
 		ChessPiece temp = getPiece(to);
 		board[to.row][to.col] = getPiece(from);
 		board[from.row][from.col] = temp;
@@ -458,12 +468,12 @@ class ChessBoard {
 		}
 
 		boolean capturableByAny(int pieceColor) {
-			// returns whether any piece of the active player's color can capture something at this Chess Coordinate
-			return (getCaptorList(pieceColor) != null);
+			// returns whether any piece of pieceColor can capture something at this Chess Coordinate
+			return (getCaptorList(pieceColor).size() > 0);
 			}
 				
 		LinkedList getCaptorList(int pieceColor) {
-			// returns list of the pieces of the active player's color that can capture something at this Chess Coordinate
+			// returns list of the pieces of the pieceColor that can capture something at this Chess Coordinate
 			LinkedList captorList = new LinkedList();
 			int r, c;
 			// look for pawn 1 space diagonally in front
