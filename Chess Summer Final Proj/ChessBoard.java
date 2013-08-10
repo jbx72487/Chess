@@ -27,6 +27,11 @@ class ChessBoard {
 	
 	private static Socket whitePlayer;
 	private static Socket blackPlayer;
+	
+	// move statuses for Pawn
+	static final int NEVER_MOVED = 0;
+	static final int TWO_SPACES = 2;
+	static final int ONE_SPACE = 1;
 			
 	public static void main(String args[]) throws IOException {
 		if (args.length > 0)
@@ -390,9 +395,9 @@ class ChessBoard {
 			if (getPiece(to).getName() == 'P') {
 				// if pawn that hasn't moved before, mark it as moved
 				Pawn p = (Pawn) getPiece(to);
-				if (!p.hasMoved)
-					p.move();
-				if ((getPiece(toR,toC).getColor() == WHITE && toR == 8) || (getPiece(toR,toC).getColor() == BLACK && toR == 1)) {
+				if (p.lastMove == NEVER_MOVED)
+					p.setLastMove(Math.abs(to.row - from.row));
+				if ((getPiece(to).getColor() == WHITE && toR == 8) || (getPiece(to).getColor() == BLACK && toR == 1)) {
 					out.println("Congratulations! Your pawn has reached the opposite end of the board. Would you like to replace it with a Queen, Rook, Bishop, or Knight?");
 					String s;
 					char choice;
@@ -641,6 +646,7 @@ class ChessBoard {
 	
 	class King extends ChessPiece {
 		boolean hasMoved;
+		
 		King(int c) {
 			pieceName = 'K';
 			hasMoved = false;
@@ -649,6 +655,7 @@ class ChessBoard {
 		void move() {
 			hasMoved = true;
 		}
+		
 		// king can move exactly one vacant square in any direction
 		boolean validMove (ChessCoord f, ChessCoord t) {
 			if (((Math.abs(f.row - t.row) == 1) && (Math.abs(f.col - t.col) == 0)) || ((Math.abs(f.row - t.row) == 0) && (Math.abs(f.col - t.col) == 1)) ||
@@ -772,15 +779,20 @@ class ChessBoard {
 		}
 	}
 	class Pawn extends ChessPiece {
-		boolean hasMoved;
-		Pawn(int c) {
+		int lastMove;
+		
+		Pawn (int c) {
 			pieceName = 'P';
-			hasMoved = false;
+			lastMove = NEVER_MOVED;
 			color = c;
 		}
-		void move() {
-			hasMoved = true;
+		int getLastMove(int numSpaces) {
+			return lastMove;
 		}
+		void setLastMove(int numSpaces) {
+			lastMove = numSpaces;
+		}
+		
 		boolean validMove (ChessCoord f, ChessCoord t) {
 			// if moving forward 1 in the same column and the target is empty, return true
 			if ((t.row - f.row == color) && (f.col == t.col) && getPiece(t).isEmpty())
@@ -789,7 +801,7 @@ class ChessBoard {
 			else if ((t.row - f.row == color) && (Math.abs(t.col-f.col) == 1) && !getPiece(t).isEmpty())
 				return true;
 			// if it's this pawn's fist move and moving forward 2 in the same column and the target is empty, return true
-			else if (!hasMoved && (t.row - f.row == color*2) && (f.col == t.col) && getPiece(t).isEmpty())
+			else if (lastMove == NEVER_MOVED && (t.row - f.row == color*2) && (f.col == t.col) && getPiece(t).isEmpty())
 				return true;
 			else
 				return false;
