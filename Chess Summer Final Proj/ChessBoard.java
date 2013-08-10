@@ -89,7 +89,6 @@ class ChessBoard {
 			new PlayerHandler(whitePlayer, WHITE).start();
 			new PlayerHandler(blackPlayer, BLACK).start();
 			// close the game
-			System.out.println("GAME OVER");
 			listener.close();
 		}
 		catch (IOException e) {
@@ -116,23 +115,26 @@ class ChessBoard {
 				// create i-o streams through the socket we were given when the thread was instantiated and welcome the new client
 				BufferedReader in = new BufferedReader(new InputStreamReader (toPlayer.getInputStream()));
 				PrintWriter out = new PrintWriter(toPlayer.getOutputStream(), true);
-				out.println("What is your name?");
+				out.println("\nWhat is your name?");
 				playerName = in.readLine().trim();
 				
+				/*
 				// TEMP for testing purposes, input from file
 				if (playerColor == 1)
 					in = new BufferedReader(new FileReader("player1.txt"));
 				else
 					in = new BufferedReader(new FileReader("player2.txt"));
-				out.println("*** Welcome to Chess, "+playerName+" ***");
+				*/
 				
+				// if both players aren't here, then can't start yet!
 				waitForTwoPlayers();
+				out.println("\n*** Welcome to Chess, "+playerName+" ***\n");
+
 				
 				out.println("To castle, simply move your king to the appropriate position, and the rook will move accordingly. Type \"QUIT\" at any time to quit the game.");
 				out.flush();
 				showBoardTo(toPlayer);
 				String move;
-				// TEMP if both players aren't here, then can't start yet!
 				while (true) {
 					if (activeColor == playerColor) {
 						out.print(activeColor == WHITE ? "White" : "Black");
@@ -151,7 +153,6 @@ class ChessBoard {
 							// attempt to perform move
 							if (makeMove(move, in, out)) {
 								showBoardToBoth();
-								showMsgToBoth("\n\n");
 								int status = hasWinningCondition();
 								if (status == 2) {
 									showMsgToBoth(playerName + " has won!");
@@ -179,7 +180,7 @@ class ChessBoard {
 		}
 	}
 	
-	synchronized void waitForTwoPlayers() {
+	synchronized void waitForTwoPlayers() throws IOException {
 		activePlayers ++;
 		if (activePlayers == 1)
 			try {
@@ -203,16 +204,6 @@ class ChessBoard {
 		notifyAll();
 	}
 	
-	synchronized void showMsgToBoth(String message) throws IOException {
-		// sends the message to both players
-		showMsgTo(whitePlayer, message);
-		showMsgTo(blackPlayer, message);
-	}
-	
-	synchronized void showMsgTo(Socket s, String message) throws IOException {
-		PrintWriter p = new PrintWriter(s.getOutputStream(), true);
-		p.println(message);
-	}
 	
 	ChessPiece getPiece(ChessCoord a) {
 		return board[a.row][a.col];
@@ -225,6 +216,18 @@ class ChessBoard {
 	synchronized void clearPiece(ChessCoord p) {
 		board[p.row][p.col].pieceName = ' ';
 		board[p.row][p.col].color = 0;
+	}
+	
+	synchronized void showMsgToBoth(String message) throws IOException {
+		// sends the message to both players
+		if (whitePlayer != null) showMsgTo(whitePlayer, message);
+		if (blackPlayer != null) showMsgTo(blackPlayer, message);
+	}
+	
+	synchronized void showMsgTo(Socket s, String message) throws IOException {
+		PrintWriter p = new PrintWriter(s.getOutputStream(), true);
+		p.println(message);
+		p.flush();
 	}
 	
 	synchronized void showBoardToBoth() throws IOException {
@@ -259,6 +262,8 @@ class ChessBoard {
 		for (int c = (int)('A'); c <= (int) ('H'); c++)
 			p.print("  "+ (char) c +" ");
 		p.println();
+		p.println();
+		p.flush();
 	}
 	
 	boolean onBoard(int r, int c) {
@@ -356,13 +361,19 @@ class ChessBoard {
 				getPiece(from).validMove(from, to)) { // must be valid move based on that gamepiece
 			// if "to" space is empty, can just switch the "from" and "to"
 			if (getPiece(to).isEmpty()) {
+				showMsgToBoth((activeColor == WHITE ? "White" : "Black") +" moves " + getPiece(from).getName()+" from "+m.substring(0,2)+" to "+m.substring(3,5)+".");
+				// if the "to" is empty, the "from" is a pawn, and the "to" and "from" columns are different, then it was an en passant
+				if (getPiece(from).getName() == 'P' && from.col != to.col) {
+					clearPiece(new ChessCoord(to.row - activeColor, to.col));
+					showMsgToBoth("P has been captured.");
+				}
 				swapPieces(from, to);
-				
 			} else { // if the "to" isn't empty
 				// if it's on your own side, can't make this move
-				if (activeColor == getPiece(toR,toC).getColor()) return false;
+				if (activeColor == getPiece(to).getColor()) return false;
+				showMsgToBoth((activeColor == WHITE ? "White" : "Black") +" moves " + getPiece(from).getName() + " from " + m.substring(0,2)+" to "+m.substring(3,5)+".");
 				// if "to" space belongs to the other person, then capture it
-				showMsgToBoth(getPiece(toR,toC)+" has been captured.");
+				showMsgToBoth(getPiece(to)+" has been captured.");
 				clearPiece(to);
 				swapPieces(from, to);
 			}
@@ -395,9 +406,10 @@ class ChessBoard {
 			if (getPiece(to).getName() == 'P') {
 				// if pawn that hasn't moved before, mark it as moved
 				Pawn p = (Pawn) getPiece(to);
-				if (p.lastMove == NEVER_MOVED)
+				if (p.lastMove == NEVER_MOVED || p.lastMove == TWO_SPACES)
 					p.setLastMove(Math.abs(to.row - from.row));
-				if ((getPiece(to).getColor() == WHITE && toR == 8) || (getPiece(to).getColor() == BLACK && toR == 1)) {
+				// promotion
+				if ((p.getColor() == WHITE && toR == 8) || (p.getColor() == BLACK && toR == 1)) {
 					out.println("Congratulations! Your pawn has reached the opposite end of the board. Would you like to replace it with a Queen, Rook, Bishop, or Knight?");
 					String s;
 					char choice;
@@ -416,7 +428,6 @@ class ChessBoard {
 					}
 				}
 			}
-			showMsgToBoth((activeColor == WHITE ? "White" : "Black") +" moves " + getPiece(to).getName()+" from "+m.substring(0,2)+" to "+m.substring(3,5)+".");
 			return true;
 		} else return false;
 	}
@@ -786,7 +797,7 @@ class ChessBoard {
 			lastMove = NEVER_MOVED;
 			color = c;
 		}
-		int getLastMove(int numSpaces) {
+		int getLastMove() {
 			return lastMove;
 		}
 		void setLastMove(int numSpaces) {
@@ -799,6 +810,9 @@ class ChessBoard {
 				return true;
 			// if moving forward 1 and sideways 1 and the target is not empty, return true
 			else if ((t.row - f.row == color) && (Math.abs(t.col-f.col) == 1) && !getPiece(t).isEmpty())
+				return true;
+			// if moving forward 1 and sideways 1 and the target IS empty, but the piece behind the target is a pawn whose last move was 2 spaces, return true for en passant
+			else if ((t.row - f.row == color) && (Math.abs(t.col-f.col) == 1) && getPiece(t.row - color, t.col).getName() == 'P' && ((Pawn) getPiece(t.row - color, t.col)).getLastMove() == TWO_SPACES)
 				return true;
 			// if it's this pawn's fist move and moving forward 2 in the same column and the target is empty, return true
 			else if (lastMove == NEVER_MOVED && (t.row - f.row == color*2) && (f.col == t.col) && getPiece(t).isEmpty())
