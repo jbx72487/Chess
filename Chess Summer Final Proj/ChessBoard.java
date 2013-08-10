@@ -84,6 +84,7 @@ class ChessBoard {
 			new PlayerHandler(whitePlayer, WHITE).start();
 			new PlayerHandler(blackPlayer, BLACK).start();
 			// close the game
+			System.out.println("GAME OVER");
 			listener.close();
 		}
 		catch (IOException e) {
@@ -150,7 +151,7 @@ class ChessBoard {
 								if (status == 2) {
 									showMsgToBoth(playerName + " has won!");
 									showMsgTo((activeColor == WHITE ? whitePlayer : blackPlayer), "CONGRATULATIONS!!");
-									endGame();
+									break;
 								} else if (status == 1)
 									showMsgToBoth("CHECK.");
 								activeColor = -1 * activeColor;
